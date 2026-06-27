@@ -88,3 +88,35 @@ Potential Sprint 4 directions:
 - Error and empty state polish
 
 Final Sprint 4 scope must be approved before implementation.
+
+## Sprint 3.6 Completed: v0.3.0 First AI Generation
+
+Sprint 3.6 completes the first real AI generation milestone.
+
+- Task14.2: AI environment configuration and mode switching
+- Task14.3: AI Provider Framework
+- Task14.4: DMXAPI connection test API
+- Task14.5: Real DMXAPI connection verification
+- Task14.6: DMXAPI real text-to-image generation
+- Task14.6.1: AI Workspace rendering restoration
+- Task14.6.2: AI Workspace default model and real image display
+
+## v0.3.0 Result
+
+- AI Provider Framework supports `mock`, `dmxapi`, `openai`, and `custom`.
+- DMXAPI is the first real provider.
+- Current real image model is `gpt-image-2`.
+- `GET /api/ai/test-provider` verifies provider configuration and connectivity.
+- `POST /api/ai/generate` can generate real images through DMXAPI.
+- `/ai` page can display generated `data:image/png;base64,...` images and URL images.
+- Mock provider remains available for local fallback and development.
+
+## Next Suggested Scope
+
+Future work should be approved as a new task before implementation.
+
+- Persist generated images into Media Library.
+- Save generation history to the database.
+- Add download/save/reuse actions for generated images.
+- Improve provider error taxonomy.
+- Add provider and model settings UI.

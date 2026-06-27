@@ -104,7 +104,7 @@ export default function AIPage() {
   const [negativePrompt, setNegativePrompt] = useState(
     "Avoid distorted product details, unreadable text, extra objects, incorrect packaging, and low-quality lighting.",
   );
-  const [model, setModel] = useState("mock-image-model");
+  const [model, setModel] = useState("gpt-image-2");
   const [platform, setPlatform] = useState("amazon");
   const [size, setSize] = useState("1024x1024");
   const [quality, setQuality] = useState("high");
@@ -121,26 +121,50 @@ export default function AIPage() {
     setIsLoading(true);
     setError("");
 
-    try {
-      const [projectData, productData, mediaData] = await Promise.all([
-        fetchApiData<Project[]>("/api/projects"),
-        fetchApiData<Product[]>("/api/products"),
-        fetchApiData<MediaAsset[]>("/api/media"),
-      ]);
+    const [projectResult, productResult, mediaResult] = await Promise.allSettled([
+      fetchApiData<Project[]>("/api/projects"),
+      fetchApiData<Product[]>("/api/products"),
+      fetchApiData<MediaAsset[]>("/api/media"),
+    ]);
 
-      setProjects(projectData);
-      setProducts(productData);
-      setMediaAssets(mediaData);
-      setSelectedProjectId((current) => current || projectData[0]?.id || "");
-    } catch (fetchError) {
-      setError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : "Failed to load AI workspace data.",
+    const loadErrors: string[] = [];
+
+    if (projectResult.status === "fulfilled") {
+      setProjects(projectResult.value);
+      setSelectedProjectId((current) => current || projectResult.value[0]?.id || "");
+    } else {
+      setProjects([]);
+      loadErrors.push(
+        projectResult.reason instanceof Error
+          ? projectResult.reason.message
+          : "Failed to load projects.",
       );
-    } finally {
-      setIsLoading(false);
     }
+
+    if (productResult.status === "fulfilled") {
+      setProducts(productResult.value);
+    } else {
+      setProducts([]);
+      loadErrors.push(
+        productResult.reason instanceof Error
+          ? productResult.reason.message
+          : "Failed to load products.",
+      );
+    }
+
+    if (mediaResult.status === "fulfilled") {
+      setMediaAssets(mediaResult.value);
+    } else {
+      setMediaAssets([]);
+      loadErrors.push(
+        mediaResult.reason instanceof Error
+          ? mediaResult.reason.message
+          : "Failed to load media.",
+      );
+    }
+
+    setError(loadErrors.join(" "));
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -164,17 +188,21 @@ export default function AIPage() {
     return filteredProducts[0]?.id || "";
   }, [filteredProducts, selectedProductId]);
 
-  const filteredMedia = useMemo(
-    () =>
-      mediaAssets.filter((media) => {
-        if (activeProductId) {
-          return media.productId === activeProductId;
-        }
+  const filteredMedia = useMemo(() => {
+    const projectMedia = mediaAssets.filter(
+      (media) => media.projectId === selectedProjectId,
+    );
 
-        return media.projectId === selectedProjectId;
-      }),
-    [activeProductId, mediaAssets, selectedProjectId],
-  );
+    if (!activeProductId) {
+      return projectMedia;
+    }
+
+    const productMedia = projectMedia.filter(
+      (media) => media.productId === activeProductId,
+    );
+
+    return productMedia.length > 0 ? productMedia : projectMedia;
+  }, [activeProductId, mediaAssets, selectedProjectId]);
 
   const activeMediaId = useMemo(() => {
     if (filteredMedia.some((media) => media.id === selectedMediaId)) {
@@ -282,7 +310,7 @@ export default function AIPage() {
           <AppCard className="p-5">
             <AppToolbar
               title="Generation Control"
-              subtitle="Mock workflow for image analysis, prompt preparation, and generation."
+              subtitle="AI workflow for image analysis, prompt preparation, and generation."
               actions={
                 <>
                   <AppButton
@@ -321,14 +349,12 @@ export default function AIPage() {
           ) : null}
 
           {isLoading ? (
-            <LoadingState />
-          ) : projects.length === 0 ? (
-            <EmptyState
-              title="No workspace data"
-              description="Seed data is required before the mock AI workflow can run."
-            />
-          ) : (
-            <section className="grid min-h-[640px] grid-cols-[240px_1fr_300px] gap-5">
+            <AppCard className="p-5" withShadow={false}>
+              <LoadingState />
+            </AppCard>
+          ) : null}
+
+          <section className="grid min-h-[640px] grid-cols-[240px_1fr_300px] gap-5">
               <div className="flex flex-col gap-4">
                 <AppCard className="overflow-hidden">
                   <div className="border-b border-blue-100 p-4">
@@ -339,6 +365,7 @@ export default function AIPage() {
                   <div className="space-y-2 p-3">
                     <select
                       className="h-10 w-full rounded-lg border border-blue-100 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                      disabled={isLoading || projects.length === 0}
                       onChange={(event) => {
                         setSelectedProjectId(event.target.value);
                         setGenerationResult(null);
@@ -352,6 +379,12 @@ export default function AIPage() {
                         </option>
                       ))}
                     </select>
+                    {!isLoading && projects.length === 0 ? (
+                      <EmptyState
+                        title="No projects"
+                        description="Create or seed projects before generating AI images."
+                      />
+                    ) : null}
                   </div>
                 </AppCard>
 
@@ -364,7 +397,7 @@ export default function AIPage() {
                   <div className="space-y-2 p-3">
                     <select
                       className="h-10 w-full rounded-lg border border-blue-100 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                      disabled={filteredProducts.length === 0}
+                      disabled={isLoading || filteredProducts.length === 0}
                       onChange={(event) => {
                         setSelectedProductId(event.target.value);
                         setGenerationResult(null);
@@ -377,10 +410,11 @@ export default function AIPage() {
                         </option>
                       ))}
                     </select>
-                    {filteredProducts.length === 0 ? (
-                      <p className="text-xs text-slate-500">
-                        No products are linked to this project.
-                      </p>
+                    {!isLoading && filteredProducts.length === 0 ? (
+                      <EmptyState
+                        title="No products"
+                        description="No products are linked to the selected project."
+                      />
                     ) : null}
                   </div>
                 </AppCard>
@@ -392,7 +426,7 @@ export default function AIPage() {
                   <div className="space-y-3 p-3">
                     <select
                       className="h-10 w-full rounded-lg border border-blue-100 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                      disabled={filteredMedia.length === 0}
+                      disabled={isLoading || filteredMedia.length === 0}
                       onChange={(event) => {
                         setSelectedMediaId(event.target.value);
                         setAnalysisResult(null);
@@ -415,10 +449,11 @@ export default function AIPage() {
                     >
                       {isAnalyzing ? "Analyzing..." : "Analyze Image"}
                     </AppButton>
-                    {filteredMedia.length === 0 ? (
-                      <p className="text-xs text-slate-500">
-                        No media assets are linked to this selection.
-                      </p>
+                    {!isLoading && filteredMedia.length === 0 ? (
+                      <EmptyState
+                        title="No media"
+                        description="No media assets are linked to the selected project or product."
+                      />
                     ) : null}
                   </div>
                 </AppCard>
@@ -521,7 +556,7 @@ export default function AIPage() {
 
               <AppCard className="overflow-hidden">
                 <div className="border-b border-blue-100 p-5">
-                  <AppToolbar title="AI Parameters" subtitle="Mock generation settings." />
+                  <AppToolbar title="AI Parameters" subtitle="AI generation settings." />
                 </div>
                 <div className="space-y-4 p-5">
                   <AppInput
@@ -565,13 +600,12 @@ export default function AIPage() {
                 </div>
               </AppCard>
             </section>
-          )}
 
           <AppCard className="overflow-hidden">
             <div className="border-b border-blue-100 p-5">
               <AppToolbar
                 title="Generate Queue"
-                subtitle="Mock generation result appears after Generate."
+                subtitle="Generation result appears after Generate."
               />
             </div>
             <div className="grid grid-cols-4 gap-4 p-5">
@@ -593,7 +627,7 @@ export default function AIPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">
-                      Mock Generation Result
+                      Generation Result
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       Task: {generationResult.taskId}
@@ -604,9 +638,12 @@ export default function AIPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {generationResult.images.map((image) => (
                     <AppCard key={image.id} className="p-4" withShadow={false}>
-                      <div className="flex h-36 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-sm font-semibold text-blue-600">
-                        Mock Image
-                      </div>
+                      <div
+                        aria-label={image.prompt}
+                        className="h-48 rounded-lg border border-blue-100 bg-blue-50 bg-cover bg-center"
+                        role="img"
+                        style={{ backgroundImage: `url(${image.url})` }}
+                      />
                       <p className="mt-3 text-sm font-semibold text-slate-950">
                         {image.id}
                       </p>

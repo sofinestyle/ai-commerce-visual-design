@@ -6,17 +6,17 @@ AI 电商视觉设计平台
 
 ## 当前版本
 
-v0.2.1
+v0.3.0
 
 ## 当前阶段
 
-Sprint 3.5，准备进入真实 OpenAI 接入。
+Sprint 3.6，First AI Generation 已完成。
 
 ## 项目目标
 
 构建一个面向电商团队的 AI 视觉设计平台，帮助用户围绕项目、商品、素材与生成任务完成电商视觉内容的上传、分析、生成与管理。
 
-平台当前重点是打通从项目与商品管理，到素材上传与 Mock AI 生成的完整业务链路；下一阶段将把 Mock AI 生成替换或扩展为真实 OpenAI 能力。
+平台当前已经打通从项目与商品管理，到素材上传、AI Provider 配置、DMXAPI 真实文生图、前端真实图片显示的 First AI Generation 闭环。
 
 ## 已完成模块
 
@@ -25,6 +25,11 @@ Sprint 3.5，准备进入真实 OpenAI 接入。
 - 媒体素材上传接口
 - 媒体素材分析接口
 - Mock AI 生成接口
+- AI Provider Framework
+- DMXAPI Provider
+- DMXAPI 连接测试 API
+- DMXAPI 真实文生图
+- `/ai` 页面真实图片显示
 - 统一 API 返回格式
 - 基于 Prisma 与 SQLite 的本地数据持久化
 - 企业级 SaaS 桌面端基础界面规范
@@ -38,6 +43,8 @@ Sprint 3.5，准备进入真实 OpenAI 接入。
 - Service / Repository 分层
 - Prisma
 - SQLite
+- DMXAPI OpenAI-compatible API
+- `gpt-image-2`
 - npm scripts
 - ESLint
 
@@ -51,18 +58,31 @@ Page -> API Route -> Service -> Repository -> Prisma -> SQLite
 
 Page -> API Route -> Media / AI Service -> Repository -> Prisma -> SQLite
 
-当前 AI 生成仍处于 Mock 阶段，生成请求进入 AI Service 后返回模拟结果，并按现有数据模型保存或返回给前端。
+当前 AI 生成已进入 First AI Generation 阶段。生成请求进入 AI Service 后，通过 Provider Factory 选择 `mock`、`dmxapi`、`openai` 或 `custom` provider。当前真实 provider 为 DMXAPI，使用 OpenAI-compatible image generation endpoint 与 `gpt-image-2` 模型生成图片，并返回现有统一结果结构。
 
-## 下一阶段目标：First AI Generation
+## v0.3.0 First AI Generation
 
-下一阶段目标是完成 First AI Generation，即接入真实 OpenAI 生成能力，并在不破坏现有分层的前提下替换或扩展 Mock AI 流程。
+v0.3.0 已完成 First AI Generation。
 
-优先目标：
+已完成内容：
 
-- 明确 OpenAI 客户端封装位置
-- 在 AI Service 内接入真实生成调用
-- 保持 API Route 入参与返回格式稳定
+- 新增 AI Provider Framework
+- 新增 DMXAPI provider
+- 支持 `AI_PROVIDER=dmxapi`
+- 支持 `AI_BASE_URL`、`AI_API_KEY`、`AI_IMAGE_MODEL`
+- 默认真实图片模型为 `gpt-image-2`
+- 新增 `GET /api/ai/test-provider`
+- `POST /api/ai/generate` 已支持真实 DMXAPI 文生图
+- 支持 DMXAPI 返回 URL 或 base64 图片
+- base64 图片以 `data:image/png;base64,...` 返回
+- `/ai` 页面已能真实显示 data URL 或 http/https 图片
 - 保留 Mock AI 作为 fallback 或开发模式能力
-- 增加生成过程中的错误处理、Loading 状态与失败提示
-- 补充最小必要的环境变量说明与验证逻辑
+- 保持 API Route 入参与返回格式稳定
 
+## 下一阶段目标
+
+- 保存真实生成图片到媒体库
+- 为生成历史落库
+- 增加 provider 错误分类与用户友好提示
+- 增加真实生成结果的下载、保存、复用能力
+- 补充更完整的 DMXAPI/OpenAI-compatible provider 文档

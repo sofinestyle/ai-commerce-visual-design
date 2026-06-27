@@ -40,7 +40,7 @@ Page -> API Route -> Service -> Repository -> Prisma -> SQLite
 - 承载业务规则与流程编排。
 - 调用 Repository 读写数据。
 - 处理媒体分析、AI 生成等领域逻辑。
-- 后续真实 OpenAI 接入应优先放在 AI Service 内。
+- 真实 AI 接入通过 AI Service 调用 Provider Factory 完成。
 
 ### Repository
 
@@ -67,11 +67,12 @@ AI Service 是 AI 生成能力的集中入口。
 - 接收生成请求
 - 读取项目、商品、媒体等上下文
 - 组织生成 prompt 或生成参数
-- 当前返回 Mock AI 结果
-- 后续调用 OpenAI
+- 通过 Provider Factory 选择 Mock、DMXAPI、OpenAI 或 Custom provider
+- 当前真实 provider 为 DMXAPI
+- 当前真实图片模型为 `gpt-image-2`
 - 统一处理 AI 调用错误与 fallback
 
-真实 OpenAI 客户端不应散落在页面或 API Route 中，应由 AI Service 或其内部 client/helper 统一封装。
+真实 AI 客户端不应散落在页面或 API Route 中，应由 AI Provider 层统一封装。
 
 ## Media Upload 流程
 
@@ -118,6 +119,89 @@ Page
 - 如需要持久化，则通过 Repository 写入数据库。
 - API Route 通过 `apiSuccess` 返回生成结果。
 
+## AI Provider Framework
+
+v0.3.0 引入 AI Provider Framework。
+
+核心结构：
+
+```text
+Page
+-> POST /api/ai/generate
+-> AI API Route
+-> AI Service
+-> Provider Factory
+-> mock / dmxapi / openai / custom Provider
+```
+
+Provider 统一方法：
+
+```text
+generateImage(input)
+```
+
+统一输出：
+
+```text
+{
+  taskId,
+  status,
+  images: [{ id, url, prompt, model }]
+}
+```
+
+当前 provider：
+
+- `mock`：本地开发 fallback，不需要 key。
+- `dmxapi`：当前真实 provider，使用 `AI_BASE_URL` + `AI_API_KEY`。
+- `openai`：保留官方 OpenAI 接入位置。
+- `custom`：保留其它 OpenAI-compatible 平台接入位置。
+
+## DMXAPI 真实文生图流程
+
+当前真实生成链路：
+
+```text
+Page
+-> POST /api/ai/generate
+-> AI API Route
+-> AI Service
+-> Provider Factory
+-> DMXAPI Provider
+-> POST {AI_BASE_URL}/v1/images/generations
+-> DMXAPI
+-> DMXAPI Provider
+-> API Route
+-> Page
+```
+
+环境变量：
+
+- `AI_PROVIDER=dmxapi`
+- `AI_BASE_URL=https://www.dmxapi.cn`
+- `AI_API_KEY=...`
+- `AI_IMAGE_MODEL=gpt-image-2`
+
+返回处理：
+
+- 如果 DMXAPI 返回 URL，前端直接显示 URL 图片。
+- 如果 DMXAPI 返回 base64，Provider 返回 `data:image/png;base64,...`。
+- `/ai` 页面已支持真实显示 data URL 和 http/https 图片。
+
+## Provider 连接测试流程
+
+`GET /api/ai/test-provider` 用于验证 provider 配置，不生成图片。
+
+```text
+Page / Tooling
+-> GET /api/ai/test-provider
+-> API Route
+-> AI Config
+-> DMXAPI models endpoint or lightweight request
+```
+
+该接口不得暴露 API Key。
+
 ## 后续 OpenAI 接入位置
 
 OpenAI 接入应放在 AI Service 层内或 AI Service 调用的专用 client 中。
@@ -144,4 +228,3 @@ Page
 - 保留 Mock 模式用于本地开发或失败 fallback。
 - OpenAI API key 与模型配置通过环境变量管理。
 - 真实调用错误必须转成可控的 `apiError`。
-

@@ -110,13 +110,61 @@ GET API 开发约定：
 
 - 接收生成参数。
 - 调用 AI Service。
-- 当前阶段执行 Mock AI 生成。
-- 后续阶段接入真实 OpenAI 生成。
+- 通过 Provider Factory 选择 AI Provider。
+- `AI_PROVIDER=mock` 时执行 Mock AI 生成。
+- `AI_PROVIDER=dmxapi` 时调用 DMXAPI OpenAI-compatible image generation endpoint。
+- 当前真实图片模型为 `gpt-image-2`。
 - 返回生成结果。
+
+返回数据保持：
+
+```json
+{
+  "taskId": "dmx-task-...",
+  "status": "Completed",
+  "images": [
+    {
+      "id": "dmx-image-...",
+      "url": "data:image/png;base64,...",
+      "prompt": "Prompt text",
+      "model": "gpt-image-2"
+    }
+  ]
+}
+```
+
+如果 provider 返回 URL，`images[].url` 直接使用该 URL；如果 provider 返回 base64，`images[].url` 使用 `data:image/png;base64,...`。
+
+### GET /api/ai/test-provider
+
+用途：验证当前 AI Provider 配置是否可用，不生成图片。
+
+职责：
+
+- 读取 `AI_PROVIDER`、`AI_BASE_URL`、`AI_API_KEY`、`AI_IMAGE_MODEL`。
+- `AI_PROVIDER=mock` 时返回 mock mode 成功状态。
+- `AI_PROVIDER=dmxapi` 时检查 `AI_BASE_URL` 和 `AI_API_KEY`。
+- DMXAPI 配置齐全时调用 OpenAI-compatible models endpoint 或轻量测试请求。
+- 不暴露 API Key。
+
+成功返回示例：
+
+```json
+{
+  "success": true,
+  "data": {
+    "provider": "dmxapi",
+    "mode": "connection-test",
+    "message": "DMXAPI provider connection succeeded.",
+    "imageModel": "gpt-image-2",
+    "baseUrlConfigured": true
+  }
+}
+```
 
 ## 后续待开发 API
 
-后续进入 First AI Generation 后，可能需要补充以下 API 或能力：
+First AI Generation 已在 v0.3.0 完成。后续可能需要补充以下 API 或能力：
 
 - 获取单次生成任务详情
 - 获取生成历史列表
@@ -125,7 +173,8 @@ GET API 开发约定：
 - 删除生成结果
 - 更新生成结果状态
 - 获取 AI 模型配置
-- 获取 OpenAI 连接健康状态
+- 获取 provider 连接健康状态
+- 保存真实生成图片到媒体库
 - 媒体分析结果详情查询
 - 项目级素材库查询与筛选
 
@@ -136,4 +185,3 @@ GET API 开发约定：
 - 是否使用 `apiSuccess` / `apiError`
 - 是否需要数据库 schema 变更
 - 是否影响现有前端调用
-

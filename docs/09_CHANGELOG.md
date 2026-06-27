@@ -250,3 +250,89 @@ Updated read-only API Routes to call Service methods instead of Repository metho
 The current data access chain is now:
 
 `Page -> API Route -> Service -> Repository -> Prisma -> SQLite`
+
+## Sprint 3.6 / v0.3.0 First AI Generation
+
+### Task14.2: OpenAI Environment Configuration And Mode Switching
+
+Prepared AI runtime configuration without calling real OpenAI.
+
+- Added AI environment examples.
+- Added `src/lib/aiConfig.ts`.
+- Added provider mode support with `mock` as the safe default.
+- Kept `/api/ai/generate` response format stable.
+
+### Task14.3: AI Provider Framework
+
+Created the AI Provider Framework for current and future model providers.
+
+- Added provider types and factory.
+- Added Mock Provider.
+- Added DMXAPI Provider.
+- Added OpenAI Provider placeholder.
+- Added Custom Provider placeholder for OpenAI-compatible platforms.
+- Updated AI Generation Service to call `providerFactory.getProvider().generateImage(input)`.
+
+### Task14.4: DMXAPI Connection Test API
+
+Added provider configuration verification without image generation.
+
+- Added `GET /api/ai/test-provider`.
+- Supported mock mode verification.
+- Supported DMXAPI missing-config errors.
+- Verified configured DMXAPI connection through a lightweight OpenAI-compatible models request.
+- Ensured API keys are not exposed in responses.
+
+### Task14.5: Real DMXAPI Connection Test
+
+Verified local DMXAPI configuration.
+
+- Confirmed `AI_PROVIDER=dmxapi`.
+- Confirmed `AI_BASE_URL` and `AI_API_KEY` are configured locally.
+- Confirmed `AI_IMAGE_MODEL=gpt-image-2`.
+- Verified `GET /api/ai/test-provider` returns success for DMXAPI.
+
+### Task14.6: DMXAPI Real Text-To-Image Generation
+
+Implemented real image generation in `dmxProvider.ts`.
+
+- Calls `POST {AI_BASE_URL}/v1/images/generations`.
+- Uses `Authorization: Bearer AI_API_KEY`.
+- Sends OpenAI-compatible image generation payload.
+- Uses `AI_IMAGE_MODEL=gpt-image-2`.
+- Supports URL image responses.
+- Supports base64 image responses by returning `data:image/png;base64,...`.
+- Keeps `/api/ai/generate` response shape stable.
+
+### Task14.6.1: AI Workspace Restoration
+
+Fixed the AI Workspace page rendering.
+
+- Restored Project Selector.
+- Restored Product Selector.
+- Restored Media Selector.
+- Restored Prompt Editor.
+- Restored Analyze and Generate actions.
+- Ensured fetch errors display as errors instead of hiding the workspace.
+- Ensured empty data displays EmptyState instead of hiding the workspace.
+
+### Task14.6.2: AI Workspace Real Generation UX
+
+Updated the AI Workspace for real image generation.
+
+- Replaced `mock-image-model` default with `gpt-image-2`.
+- Updated AI parameter copy from mock language to AI language.
+- Rendered generated `data:image/png;base64,...` images in the result area.
+- Removed Mock Image placeholders.
+- Updated result copy to `Generation Result`.
+
+## v0.3.0 Result
+
+v0.3.0 First AI Generation is complete.
+
+- AI Provider Framework exists.
+- DMXAPI is the first real provider.
+- `gpt-image-2` is the current real image model.
+- `/api/ai/test-provider` verifies provider connectivity.
+- `/api/ai/generate` supports real DMXAPI image generation.
+- `/ai` can display generated URL or base64 data URL images.
