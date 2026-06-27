@@ -1,4 +1,7 @@
-import { productRepository } from "@/lib/repositories/productRepository";
+import {
+  productRepository,
+  type CreateProductInput,
+} from "@/lib/repositories/productRepository";
 
 export const productService = {
   getAll() {
@@ -11,5 +14,9 @@ export const productService = {
 
   getByProjectId(projectId: string) {
     return productRepository.findByProjectId(projectId);
+  },
+
+  create(input: CreateProductInput) {
+    return productRepository.create(input);
   },
 };

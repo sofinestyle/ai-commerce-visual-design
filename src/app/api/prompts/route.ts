@@ -1,22 +1,14 @@
-import { NextResponse } from "next/server";
-
+import { apiError, apiSuccess } from "@/lib/apiResponse";
 import { promptService } from "@/lib/services/promptService";
 
 export async function GET() {
   try {
     const data = await promptService.getAll();
 
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return apiSuccess(data);
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch prompts.",
-      },
-      { status: 500 },
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch prompts.",
     );
   }
 }

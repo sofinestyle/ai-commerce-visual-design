@@ -4,6 +4,15 @@ const activeOnly = {
   deletedAt: null,
 };
 
+export type CreateProjectInput = {
+  name: string;
+  description?: string | null;
+  platformId: string;
+  language: string;
+  status: string;
+  coverMediaId?: string | null;
+};
+
 export const projectRepository = {
   findAll() {
     return prisma.project.findMany({
@@ -61,6 +70,19 @@ export const projectRepository = {
       },
       orderBy: {
         updatedAt: "desc",
+      },
+    });
+  },
+
+  create(input: CreateProjectInput) {
+    return prisma.project.create({
+      data: {
+        name: input.name,
+        description: input.description,
+        platformId: input.platformId,
+        language: input.language,
+        status: input.status,
+        coverMediaId: input.coverMediaId,
       },
     });
   },

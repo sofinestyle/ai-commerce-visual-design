@@ -1,4 +1,7 @@
-import { projectRepository } from "@/lib/repositories/projectRepository";
+import {
+  projectRepository,
+  type CreateProjectInput,
+} from "@/lib/repositories/projectRepository";
 
 export const projectService = {
   getAll() {
@@ -19,5 +22,9 @@ export const projectService = {
 
   getWithWorkflows() {
     return projectRepository.findWithWorkflows();
+  },
+
+  create(input: CreateProjectInput) {
+    return projectRepository.create(input);
   },
 };

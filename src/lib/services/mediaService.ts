@@ -1,4 +1,7 @@
-import { mediaRepository } from "@/lib/repositories/mediaRepository";
+import {
+  mediaRepository,
+  type CreateMediaInput,
+} from "@/lib/repositories/mediaRepository";
 
 export const mediaService = {
   getAll() {
@@ -15,5 +18,9 @@ export const mediaService = {
 
   getByProjectId(projectId: string) {
     return mediaRepository.findByProjectId(projectId);
+  },
+
+  create(input: CreateMediaInput) {
+    return mediaRepository.create(input);
   },
 };
