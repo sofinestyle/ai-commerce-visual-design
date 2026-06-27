@@ -28,6 +28,19 @@ Current technical baseline:
 - Initial migrations live under `prisma/migrations/`.
 - Prisma Client is generated and consumed through `src/lib/prisma.ts`.
 
+Current data access chain:
+
+`Page -> API Route -> Service -> Repository -> Prisma -> SQLite`
+
+Layer responsibilities:
+
+- Page: Renders UI and calls API Routes.
+- API Route: Handles HTTP request/response shape and calls Service methods.
+- Service: Owns business-facing operations and orchestration points.
+- Repository: Owns database query details.
+- Prisma: Provides ORM access and generated database client.
+- SQLite: Stores local-first application data.
+
 Current seed data volume:
 
 - Brand: 2
@@ -47,6 +60,13 @@ Repository layer:
 - Every repository includes `findAll()` and `findById(id)`.
 - Queries default to `deletedAt: null`.
 - Entity-specific read helpers exist for Project, Product, Media, and Task.
+
+Service layer:
+
+- Service modules live under `src/lib/services/`.
+- Services are thin wrappers at this stage.
+- API Routes call Service methods instead of calling Repository modules directly.
+- Future business logic, orchestration, validation, upload coordination, and AI generation coordination should live in Service modules before reaching Repository modules.
 
 Read-only API Routes:
 

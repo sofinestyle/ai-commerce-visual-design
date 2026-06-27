@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { workflowRepository } from "@/lib/repositories/workflowRepository";
+import { workflowService } from "@/lib/services/workflowService";
 
 export async function GET() {
   try {
-    const data = await workflowRepository.findAll();
+    const data = await workflowService.getAll();
 
     return NextResponse.json({
       success: true,

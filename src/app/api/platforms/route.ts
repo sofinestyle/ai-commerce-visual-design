@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { platformRepository } from "@/lib/repositories/platformRepository";
+import { platformService } from "@/lib/services/platformService";
 
 export async function GET() {
   try {
-    const data = await platformRepository.findAll();
+    const data = await platformService.getAll();
 
     return NextResponse.json({
       success: true,

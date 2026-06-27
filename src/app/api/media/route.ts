@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { mediaRepository } from "@/lib/repositories/mediaRepository";
+import { mediaService } from "@/lib/services/mediaService";
 
 export async function GET() {
   try {
-    const data = await mediaRepository.findAll();
+    const data = await mediaService.getAll();
 
     return NextResponse.json({
       success: true,

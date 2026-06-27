@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { generationHistoryRepository } from "@/lib/repositories/generationHistoryRepository";
+import { generationHistoryService } from "@/lib/services/generationHistoryService";
 
 export async function GET() {
   try {
-    const data = await generationHistoryRepository.findAll();
+    const data = await generationHistoryService.getAll();
 
     return NextResponse.json({
       success: true,

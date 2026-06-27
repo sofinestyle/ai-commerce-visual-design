@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { brandRepository } from "@/lib/repositories/brandRepository";
+import { brandService } from "@/lib/services/brandService";
 
 export async function GET() {
   try {
-    const data = await brandRepository.findAll();
+    const data = await brandService.getAll();
 
     return NextResponse.json({
       success: true,

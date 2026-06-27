@@ -221,3 +221,32 @@ Each page now includes loading, error, and empty states while preserving the exi
 - No upload flow has been implemented.
 - No AI execution has been implemented.
 - No database schema changes should be made without updating `docs/10_DATABASE_DESIGN.md`.
+
+## Sprint 3 Service Layer Update
+
+### Task12.1: Service Layer
+
+Created the initial Service Layer under `src/lib/services/`.
+
+- Added service modules for Project, Product, Media, Workflow, Prompt, Task, Generation History, Brand, and Platform.
+- Each service exposes `getAll()` and `getById(id)`.
+- Services currently wrap Repository read methods without adding business logic.
+- Entity-specific helpers were preserved at the Service level where Repository helpers already exist.
+
+### Task12.2: API Routes Connected To Service Layer
+
+Updated read-only API Routes to call Service methods instead of Repository methods.
+
+- `/api/projects` calls `projectService.getAll()`.
+- `/api/products` calls `productService.getAll()`.
+- `/api/media` calls `mediaService.getAll()`.
+- `/api/workflows` calls `workflowService.getAll()`.
+- `/api/prompts` calls `promptService.getAll()`.
+- `/api/tasks` calls `taskService.getAll()`.
+- `/api/generation-history` calls `generationHistoryService.getAll()`.
+- `/api/brands` calls `brandService.getAll()`.
+- `/api/platforms` calls `platformService.getAll()`.
+
+The current data access chain is now:
+
+`Page -> API Route -> Service -> Repository -> Prisma -> SQLite`

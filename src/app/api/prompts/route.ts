@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { promptRepository } from "@/lib/repositories/promptRepository";
+import { promptService } from "@/lib/services/promptService";
 
 export async function GET() {
   try {
-    const data = await promptRepository.findAll();
+    const data = await promptService.getAll();
 
     return NextResponse.json({
       success: true,

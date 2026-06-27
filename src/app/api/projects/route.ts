@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { projectRepository } from "@/lib/repositories/projectRepository";
+import { projectService } from "@/lib/services/projectService";
 
 export async function GET() {
   try {
-    const data = await projectRepository.findAll();
+    const data = await projectService.getAll();
 
     return NextResponse.json({
       success: true,

@@ -39,6 +39,21 @@ If a new pattern appears repeatedly, create a reusable component.
 
 Do not add business logic unless requested. Do not connect APIs, implement uploads, add AI generation, create authentication, or introduce backend behavior without an explicit task.
 
+## Data Access Layer Rules
+
+Data access must follow the approved chain:
+
+`Page -> API Route -> Service -> Repository -> Prisma -> SQLite`
+
+- Pages must not call Repository modules directly.
+- Pages must not call Prisma directly.
+- API Routes must not call Repository modules directly.
+- API Routes should call Service methods.
+- Business logic belongs in the Service Layer.
+- Repository modules only handle database queries.
+- Prisma may only be used inside Repository modules and the shared Prisma client setup.
+- UI components should not know about database implementation details.
+
 ## Preserve Existing Work
 
 Do not overwrite unrelated user or previous task changes. Work with the current codebase and keep changes scoped to the request.
