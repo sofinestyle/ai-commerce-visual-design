@@ -1,16 +1,41 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 import { AppShell } from "@/components/layout/AppShell";
 import {
   AppBadge,
   AppButton,
   AppCard,
+  EmptyState,
   AppSearchBar,
   AppToolbar,
+  LoadingState,
   PageTitle,
 } from "@/components/ui";
-import { mockProjects, type ProjectStatus } from "@/lib/mockProjects";
 
 const platformOptions = ["All Platforms", "Amazon", "Temu", "Tmall", "TikTok", "Shopify"];
 const statusOptions = ["All Status", "Draft", "Working", "Completed", "Archived"];
+
+type ProjectStatus = "Draft" | "Working" | "Completed" | "Archived";
+
+type ApiProject = {
+  id: string;
+  name: string;
+  description: string | null;
+  platformId: string;
+  language: string;
+  status: ProjectStatus;
+  coverMediaId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ProjectsResponse = {
+  success: boolean;
+  data?: ApiProject[];
+  error?: string;
+};
 
 const statusBadgeVariant: Record<ProjectStatus, "default" | "success" | "warning" | "danger"> = {
   Draft: "default",
@@ -19,7 +44,68 @@ const statusBadgeVariant: Record<ProjectStatus, "default" | "success" | "warning
   Archived: "danger",
 };
 
+const platformNameById: Record<string, string> = {
+  "platform-amazon": "Amazon",
+  "platform-temu": "Temu",
+  "platform-tmall": "Tmall",
+  "platform-tiktok": "TikTok",
+  "platform-shopify": "Shopify",
+  "platform-unknown": "Unknown",
+};
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchProjects() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/projects");
+        const result = (await response.json()) as ProjectsResponse;
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error ?? "Failed to load projects.");
+        }
+
+        if (isMounted) {
+          setProjects(result.data ?? []);
+        }
+      } catch (requestError) {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load projects.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchProjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <AppShell>
       <main className="min-w-0 flex-1 overflow-auto bg-white p-6 text-slate-950">
@@ -61,70 +147,94 @@ export default function ProjectsPage() {
             </div>
           </AppCard>
 
-          <section className="grid grid-cols-3 gap-5">
-            {mockProjects.map((project) => (
-              <AppCard
-                key={project.id}
-                className="group cursor-pointer overflow-hidden transition duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-md hover:shadow-blue-100"
-              >
-                <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100">
-                  <div className="absolute left-4 top-4 rounded-md bg-white/90 px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm">
-                    {project.thumbnail}
-                  </div>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-100 bg-white text-lg font-semibold text-blue-600 shadow-sm">
-                    {project.platform.slice(0, 2).toUpperCase()}
-                  </div>
-                </div>
+          {isLoading ? (
+            <section className="grid grid-cols-3 gap-5">
+              {Array.from({ length: 3 }, (_, index) => (
+                <LoadingState key={index} />
+              ))}
+            </section>
+          ) : null}
 
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold text-slate-950">
-                        {project.name}
-                      </h3>
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                        {project.description}
-                      </p>
-                    </div>
-                    <AppBadge>{project.platform}</AppBadge>
-                  </div>
+          {!isLoading && error ? (
+            <AppCard className="border-red-100 bg-red-50 p-5">
+              <p className="text-sm font-semibold text-red-700">Unable to load projects</p>
+              <p className="mt-2 text-sm text-red-600">{error}</p>
+            </AppCard>
+          ) : null}
 
-                  <div className="mt-5 grid grid-cols-3 gap-3 border-y border-blue-50 py-4">
-                    <div>
-                      <p className="text-xs text-slate-500">Products</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-950">
-                        {project.productCount}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Images</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-950">
-                        {project.imageCount}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Language</p>
-                      <p className="mt-1 truncate text-sm font-semibold text-slate-950">
-                        {project.language}
-                      </p>
-                    </div>
-                  </div>
+          {!isLoading && !error && projects.length === 0 ? (
+            <EmptyState
+              title="No projects found"
+              description="Projects from the database will appear here after seed data is available."
+            />
+          ) : null}
 
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-slate-500">Updated</p>
-                      <p className="mt-1 text-sm font-medium text-slate-700">
-                        {project.updatedAt}
-                      </p>
+          {!isLoading && !error && projects.length > 0 ? (
+            <section className="grid grid-cols-3 gap-5">
+              {projects.map((project) => {
+                const platformName = platformNameById[project.platformId] ?? "Unknown";
+
+                return (
+                  <AppCard
+                    key={project.id}
+                    className="group cursor-pointer overflow-hidden transition duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-md hover:shadow-blue-100"
+                  >
+                    <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100">
+                      <div className="absolute left-4 top-4 rounded-md bg-white/90 px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm">
+                        {project.coverMediaId ?? project.id}
+                      </div>
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-100 bg-white text-lg font-semibold text-blue-600 shadow-sm">
+                        {platformName.slice(0, 2).toUpperCase()}
+                      </div>
                     </div>
-                    <AppBadge variant={statusBadgeVariant[project.status]}>
-                      {project.status}
-                    </AppBadge>
-                  </div>
-                </div>
-              </AppCard>
-            ))}
-          </section>
+
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-base font-semibold text-slate-950">
+                            {project.name}
+                          </h3>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                            {project.description ?? "No description provided."}
+                          </p>
+                        </div>
+                        <AppBadge>{platformName}</AppBadge>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-3 gap-3 border-y border-blue-50 py-4">
+                        <div>
+                          <p className="text-xs text-slate-500">Products</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-950">-</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Images</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-950">-</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Language</p>
+                          <p className="mt-1 truncate text-sm font-semibold text-slate-950">
+                            {project.language}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-slate-500">Updated</p>
+                          <p className="mt-1 text-sm font-medium text-slate-700">
+                            {formatDate(project.updatedAt)}
+                          </p>
+                        </div>
+                        <AppBadge variant={statusBadgeVariant[project.status]}>
+                          {project.status}
+                        </AppBadge>
+                      </div>
+                    </div>
+                  </AppCard>
+                );
+              })}
+            </section>
+          ) : null}
 
           <AppCard className="flex items-center justify-between p-4">
             <AppButton variant="secondary">Previous</AppButton>

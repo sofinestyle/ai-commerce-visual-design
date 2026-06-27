@@ -1,35 +1,35 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 import { AppShell } from "@/components/layout/AppShell";
 import {
   AppBadge,
   AppButton,
   AppCard,
+  EmptyState,
   AppInput,
   AppToolbar,
+  LoadingState,
   PageTitle,
 } from "@/components/ui";
 
-const workflows = [
-  {
-    name: "Amazon Hero Image Flow",
-    status: "Draft",
-    updatedAt: "2026-06-26",
-  },
-  {
-    name: "Tmall Campaign Batch",
-    status: "Ready",
-    updatedAt: "2026-06-25",
-  },
-  {
-    name: "TikTok Product Video Prep",
-    status: "Paused",
-    updatedAt: "2026-06-24",
-  },
-  {
-    name: "Shopify Collection Export",
-    status: "Archived",
-    updatedAt: "2026-06-22",
-  },
-];
+type ApiWorkflow = {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string | null;
+  status: string;
+  workflowJson: unknown;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type WorkflowsResponse = {
+  success: boolean;
+  data?: ApiWorkflow[];
+  error?: string;
+};
 
 const workflowSteps = [
   {
@@ -77,7 +77,77 @@ const executionLogs = [
   "09:24 Execution disabled in UI-only mode",
 ];
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function getStatusVariant(status: string) {
+  if (status === "Ready") {
+    return "success";
+  }
+
+  if (status === "Draft") {
+    return "default";
+  }
+
+  if (status === "Archived") {
+    return "danger";
+  }
+
+  return "warning";
+}
+
 export default function WorkflowPage() {
+  const [workflows, setWorkflows] = useState<ApiWorkflow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchWorkflows() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/workflows");
+        const result = (await response.json()) as WorkflowsResponse;
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error ?? "Failed to load workflows.");
+        }
+
+        if (isMounted) {
+          setWorkflows(result.data ?? []);
+        }
+      } catch (requestError) {
+        if (isMounted) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Failed to load workflows.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchWorkflows();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const selectedWorkflow = workflows[0];
+
   return (
     <AppShell>
       <main className="min-w-0 flex-1 overflow-auto bg-white p-6 text-slate-950">
@@ -115,28 +185,56 @@ export default function WorkflowPage() {
                 />
               </div>
               <div className="space-y-3 p-4">
-                {workflows.map((workflow, index) => (
-                  <button
-                    key={workflow.name}
-                    className={[
-                      "w-full rounded-lg border p-4 text-left transition",
-                      index === 0
-                        ? "border-blue-200 bg-blue-50"
-                        : "border-blue-100 bg-white hover:border-blue-200 hover:bg-blue-50/60",
-                    ].join(" ")}
-                    type="button"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-semibold text-slate-950">
-                        {workflow.name}
-                      </p>
-                      <AppBadge>{workflow.status}</AppBadge>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Updated {workflow.updatedAt}
+                {isLoading ? (
+                  <>
+                    <LoadingState />
+                    <LoadingState />
+                    <LoadingState />
+                  </>
+                ) : null}
+
+                {!isLoading && error ? (
+                  <AppCard className="border-red-100 bg-red-50 p-4" withShadow={false}>
+                    <p className="text-sm font-semibold text-red-700">
+                      Unable to load workflows
                     </p>
-                  </button>
-                ))}
+                    <p className="mt-2 text-sm text-red-600">{error}</p>
+                  </AppCard>
+                ) : null}
+
+                {!isLoading && !error && workflows.length === 0 ? (
+                  <EmptyState
+                    title="No workflows found"
+                    description="Workflow records from the database will appear here after seed data is available."
+                  />
+                ) : null}
+
+                {!isLoading && !error
+                  ? workflows.map((workflow, index) => (
+                      <button
+                        key={workflow.id}
+                        className={[
+                          "w-full rounded-lg border p-4 text-left transition",
+                          index === 0
+                            ? "border-blue-200 bg-blue-50"
+                            : "border-blue-100 bg-white hover:border-blue-200 hover:bg-blue-50/60",
+                        ].join(" ")}
+                        type="button"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-sm font-semibold text-slate-950">
+                            {workflow.name}
+                          </p>
+                          <AppBadge variant={getStatusVariant(workflow.status)}>
+                            {workflow.status}
+                          </AppBadge>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">
+                          Updated {formatDate(workflow.updatedAt)}
+                        </p>
+                      </button>
+                    ))
+                  : null}
               </div>
             </AppCard>
 
@@ -194,13 +292,25 @@ export default function WorkflowPage() {
                 />
               </div>
               <div className="space-y-4 p-4">
-                <AppInput label="Workflow Name" value="Amazon Hero Image Flow" readOnly />
+                <AppInput
+                  label="Workflow Name"
+                  value={selectedWorkflow?.name ?? "No workflow selected"}
+                  readOnly
+                />
                 <AppInput label="Selected Step" value="Prompt" readOnly />
                 <AppInput label="Owner" value="Design Operations" readOnly />
                 <div>
                   <p className="mb-2 text-sm font-medium text-slate-700">Step Status</p>
                   <div className="flex gap-2">
-                    <AppBadge variant="warning">Pending Review</AppBadge>
+                    <AppBadge
+                      variant={
+                        selectedWorkflow
+                          ? getStatusVariant(selectedWorkflow.status)
+                          : "warning"
+                      }
+                    >
+                      {selectedWorkflow?.status ?? "Pending Review"}
+                    </AppBadge>
                     <AppBadge>UI Only</AppBadge>
                   </div>
                 </div>
