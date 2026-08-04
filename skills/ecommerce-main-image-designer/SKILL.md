@@ -49,6 +49,7 @@ Do not ask the user to provide a professional prompt unless required information
 5. Generate exactly 3 visible-copy candidates using the requested text model when available.
    - Base the candidates on product facts and design intent.
    - Include candidate angle, headline, subheadline, selling points, positioning, evidence, score, and rationale.
+   - Translate product facts into shopper benefits for visible selling points; keep raw facts in evidence instead of using them as parameter-only badges.
    - Select the best candidate before image prompt generation.
    - If the text model is blocked, retry with a safer but equally commercial request.
    - Do not collapse into bland parameter-only copy after a filter event.

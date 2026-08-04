@@ -21,29 +21,28 @@ Ask the text model to return strict JSON:
 {
   "candidates": [
     {
-      "id": "solid-wood-material-story",
-      "angle": "事实表达",
+      "id": "complete-practice-set",
+      "angle": "完整套装价值",
       "score": 92,
-      "headline": "Solid Wood, Distinct Style",
-      "subheadline": "Built with a spruce top, maple back, and yellow-green faux tiger-stripe finish.",
+      "headline": "Complete Violin Kit",
+      "subheadline": "Everything needed for daily practice",
       "sellingPoints": [
-        "Spruce top",
-        "Maple back",
-        "Ebony fittings and tailpiece"
+        "All Essentials Included",
+        "Start Practice Faster",
+        "More Value in One Box"
       ],
-      "positioning": "兼顾明确实木材质依据与特色外观的4/4小提琴",
+      "positioning": "用完整套装降低新手购买和练习准备成本，突出一套配齐的高性价比。",
       "evidence": [
-        "面板：云杉",
-        "背板：枫木",
-        "配件及拉弦板：乌木",
-        "黄绿色假虎纹油漆"
+        "4/4 size",
+        "triangle violin case",
+        "bridge, strings, 2 rosins, cleaning cloth, tuner, fingerboard sticker, mute, shoulder rest, manual"
       ],
       "layoutInstruction": "将主标题与卖点放在商品外侧的有效留白区，避免遮挡商品主体和品牌 Logo。",
       "typographyInstruction": "Use bold, clean, mobile-readable sans-serif typography with a clear headline hierarchy.",
-      "rationale": "直接传达已验证材质，建立可感知的材质价值。"
+      "rationale": "把完整套装事实转译成省心、快速开始练习和一套更划算的购买理由。"
     }
   ],
-  "selectedCandidateId": "solid-wood-material-story",
+  "selectedCandidateId": "complete-practice-set",
   "selectionReason": "最高分且产品事实、场景意图和主图可读性最平衡。"
 }
 ```
@@ -62,6 +61,29 @@ Generate 3 distinct angles. Choose angles that fit the product and image theme:
 
 For scene images, at least 2 selling points must be product facts, not scene mood.
 
+## Shopper-Benefit Selling Points
+
+Visible `sellingPoints` must be shopper-benefit phrases, not raw parameter labels. Convert product facts into purchase reasons:
+
+- `Accessories included` -> `All Essentials Included`
+- `case, bow, tuner, rosin` -> `Start Practice Faster`
+- `complete set` -> `Everything in One Set`
+- `4/4 full size` -> `Built for Growing Players` or `Full-Size Practice Ready`
+- `yellow-green finish` -> `Standout Green Finish`
+- `multiple included items` -> `More Value in One Box`
+- `beginner accessories` -> `Beginner-Friendly Setup`
+
+Do not use bare facts as visible selling points unless they are rewritten as customer value. Avoid visible badges such as:
+
+- `Spruce top`
+- `Maple back`
+- `Ebony fittings`
+- `4/4 Full Size`
+- `Yellow-Green Finish`
+- `Accessories Included`
+
+Use the raw facts in `evidence`, not as the final badge text.
+
 ## Scoring
 
 Each candidate must include a 0-100 score. Score with:
@@ -70,7 +92,7 @@ Each candidate must include a 0-100 score. Score with:
 - Ecommerce conversion strength: 20
 - Mobile readability: 15
 - Theme/scene fit: 15
-- Avoids generic parameter dumping: 10
+- Shopper-benefit selling points instead of parameter dumping: 10
 - Layout feasibility: 10
 
 Prefer candidates scoring 88 or higher. If all 3 score below 85, retry once with a stricter copy request when feasible.
