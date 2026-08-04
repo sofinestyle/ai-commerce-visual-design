@@ -28,7 +28,7 @@ Do not ask the user to provide a professional prompt unless required information
    - image type/theme
    - scenes or selling angles
    - subject/action
-   - requested text model and image model, if provided
+   - text model and image model, using the model policy below
 2. Read local platform/product context before generating:
    - product record from the database or repository data
    - product tags, material, color, size, packaging, accessories, selling points
@@ -69,7 +69,9 @@ Read only the relevant reference files:
 
 ## Execution Rules
 
+- Default to text model `gpt-5.6-terra` and image model `gpt-image-2-03` when the user does not specify models.
 - Use the user's requested models if explicitly provided. If unavailable or blocked, report the exact failure and the fallback used.
+- If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.
 - Preserve SKU-specific product appearance over generic scene aesthetics.
 - For marketplace main images, prioritize product recognizability, clean composition, and readable copy over cinematic atmosphere.
