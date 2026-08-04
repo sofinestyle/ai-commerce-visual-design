@@ -2,13 +2,16 @@
 
 ## Copy Objective
 
-Main-image copy should sell the product in shopper language, not merely list parameters.
+Main-image copy should sell the product in shopper language, not merely list parameters. Before image generation, call the text model to produce exactly 3 copy candidates and select the best one.
 
-Good copy balances:
+Each candidate balances:
 
 - an emotional or usage-driven headline
 - a factual, benefit-oriented subheadline
 - 2-4 short proof points
+- a clear positioning statement
+- product-fact evidence
+- a score and rationale for selection
 
 ## Preferred Patterns
 
@@ -52,11 +55,11 @@ Instead, keep a safe emotional shopper promise plus factual support:
 
 If the requested text model is filtered:
 
-1. Retry with a smaller, safer copy-only request.
+1. Retry with a smaller, safer copy-only request that still asks for exactly 3 candidates.
 2. Remove unnecessary sensitive descriptors.
 3. Ask for "student musician" or "young learner" copy rather than detailed child scene narration.
 4. Keep `response_format: json_object` where supported.
-5. If still blocked, use a high-quality local fallback and clearly report the failure.
+5. If still blocked, use 3 high-quality local fallback candidates and clearly report the failure.
 
 ## Fact Policy
 

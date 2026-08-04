@@ -46,7 +46,10 @@ Do not ask the user to provide a professional prompt unless required information
    - scene/background
    - copy placement
    - negative constraints
-5. Generate visible copy using the requested text model when available.
+5. Generate exactly 3 visible-copy candidates using the requested text model when available.
+   - Base the candidates on product facts and design intent.
+   - Include candidate angle, headline, subheadline, selling points, positioning, evidence, score, and rationale.
+   - Select the best candidate before image prompt generation.
    - If the text model is blocked, retry with a safer but equally commercial request.
    - Do not collapse into bland parameter-only copy after a filter event.
 6. Generate image prompts for the requested image model.
@@ -64,6 +67,7 @@ Read only the relevant reference files:
 
 - For every task, read [workflow.md](references/workflow.md).
 - For visible copy tasks or text-model failures, read [copy.md](references/copy.md).
+- Before generating visible copy, read [copy-candidate-protocol.md](references/copy-candidate-protocol.md).
 - For selecting SKU/product references, read [reference-selection.md](references/reference-selection.md).
 - For final inspection or retry decisions, read [quality-review.md](references/quality-review.md).
 
@@ -72,6 +76,7 @@ Read only the relevant reference files:
 - Default to text model `gpt-5.6-terra` and image model `gpt-image-2-03` when the user does not specify models.
 - Use the user's requested models if explicitly provided. If unavailable or blocked, report the exact failure and the fallback used.
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
+- Before image generation, call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked copy draft.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.
 - Preserve SKU-specific product appearance over generic scene aesthetics.
 - For marketplace main images, prioritize product recognizability, clean composition, and readable copy over cinematic atmosphere.

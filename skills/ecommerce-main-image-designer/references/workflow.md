@@ -75,12 +75,13 @@ For each final image, create an internal design intent:
 Use this loop:
 
 1. Build facts and references.
-2. Generate or refine visible copy.
-3. Build image prompt from design intent, references, and copy.
-4. Generate image.
-5. Inspect result.
-6. Retry if the result fails a critical check and time/model budget allows.
-7. Save output and report.
+2. Call the text model to generate exactly 3 visible-copy candidates from product facts and design intent.
+3. Validate and select the best copy candidate.
+4. Build image prompt from design intent, references, and the selected copy.
+5. Generate image.
+6. Inspect result.
+7. Retry if the result fails a critical check and time/model budget allows.
+8. Save output and report.
 
 ## Reports
 
@@ -90,7 +91,7 @@ Save a small task report near the generated outputs or in `tmp/<sku>/`:
 - structured brief
 - product facts
 - selected references
-- text model result and fallback notes
+- all 3 text-model copy candidates, selected candidate, and fallback notes
 - image prompts
 - output paths
 - QA notes
