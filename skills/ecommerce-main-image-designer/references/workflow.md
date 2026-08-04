@@ -81,11 +81,11 @@ Use this loop:
 5. Generate image.
 6. Inspect result.
 7. Retry if the result fails a critical check and time/model budget allows.
-8. Save output and report.
+8. Save output. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
 
-## Reports
+## Optional Reports
 
-Save a small task report near the generated outputs or in `tmp/<sku>/`:
+Do not write report files by default. If the user explicitly asks for a report, detailed step breakdown, prompt trace, or execution record, save a small task report near the generated outputs or in `tmp/<sku>/`:
 
 - user brief
 - structured brief
@@ -96,4 +96,4 @@ Save a small task report near the generated outputs or in `tmp/<sku>/`:
 - output paths
 - QA notes
 
-This report helps future Codex conversations recover context without relying on chat history.
+When no report is requested, keep this information in working context and include only the concise final summary the user needs.

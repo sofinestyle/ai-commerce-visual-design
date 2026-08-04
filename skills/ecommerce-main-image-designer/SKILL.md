@@ -61,6 +61,7 @@ Do not ask the user to provide a professional prompt unless required information
 8. Inspect outputs before final response.
    - Check image dimensions, file existence, platform fit, product accuracy, scene match, visible copy, composition, and obvious artifacts.
    - Register or save images to the relevant project/media location when the local platform supports it.
+   - Do not create a standalone report file unless the user explicitly asks for a report, detailed step breakdown, prompt trace, or execution record.
 
 ## Load References
 
@@ -83,7 +84,7 @@ Read only the relevant reference files:
 - For marketplace main images, prioritize product recognizability, clean composition, and readable copy over cinematic atmosphere.
 - If the requested subject includes children, use safe phrasing such as "school-age student musician" or "young student player" in internal prompts unless the user requires exact wording. Avoid unnecessary age details.
 - Do not let safety/filter recovery degrade copy quality. Replace risky phrasing with safe shopper-value phrasing.
-- Save a concise report with: product facts used, references used, copy, prompts, models, outputs, and QA notes.
+- Do not save extra report files by default. Save a concise report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
 
 ## Final Response
 

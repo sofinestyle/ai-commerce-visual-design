@@ -110,8 +110,8 @@ Select the highest-scoring candidate unless it:
 Separate visible copy from prompt instructions:
 
 - Use `headline`, `subheadline`, and `sellingPoints` as visible image text.
-- Use `layoutInstruction`, `typographyInstruction`, `positioning`, `evidence`, and `rationale` only as internal prompt/report context.
+- Use `layoutInstruction`, `typographyInstruction`, `positioning`, `evidence`, and `rationale` only as internal prompt context unless the user explicitly asks for a report or detailed breakdown.
 
-## Report
+## Optional Report
 
-Include all 3 candidates in the task report, not only the selected one.
+If the user explicitly asks for a report or detailed breakdown, include all 3 candidates, not only the selected one. Otherwise do not create a standalone report file by default.
