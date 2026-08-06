@@ -17,7 +17,7 @@ The user should be able to write a compact task such as:
 主体：小男孩演奏小提琴。
 ```
 
-Do not ask the user to provide a professional prompt unless required information cannot be found locally.
+Do not ask the user to provide a professional prompt unless required commercial/product facts cannot be found locally.
 
 ## Mandatory Workflow
 
@@ -29,24 +29,29 @@ Do not ask the user to provide a professional prompt unless required information
    - scenes or selling angles
    - subject/action
    - text model and image model, using the model policy below
-2. Read local platform/product context before generating:
+2. Validate required facts before planning or generating:
+   - Never invent or default missing product facts. If SKU/product number is absent, ambiguous, not found, or has no usable verified product reference, stop and ask the user to provide or correct it.
+   - Do not default platform when marketplace rules affect the output. If platform is absent and cannot be safely inferred from the user request, ask the user to choose one before design or generation.
+   - If the user requests promotion, discount, limited-time, ranking, certification, guarantee, or price language without verified supporting facts, ask for the verified offer/fact or remove that claim.
+   - Creative details such as lighting, composition, or neutral background may be inferred from product and platform context; commercial facts may not.
+3. Read local platform/product context before generating:
    - product record from the database or repository data
    - product tags, material, color, size, packaging, accessories, selling points
    - brand assets and logo
    - existing reference images and previous high-quality generated images for the same SKU
-3. Select reference images automatically:
+4. Select reference images automatically:
    - choose product photos that match the requested theme
    - choose brand logo when visible logo is appropriate
    - choose accessory/set references only when the theme needs them
    - prefer verified final product photography over prior AI output unless using prior output as a style reference
-4. Generate design intent internally:
+5. Generate design intent internally:
    - platform-specific ecommerce objective
    - composition
    - product prominence
    - scene/background
    - copy placement
    - negative constraints
-5. Resolve visible copy before image prompt generation.
+6. Resolve visible copy before image prompt generation.
    - If the user requested a design plan that included specific visible copy, and then confirms that plan or explicitly asks to use that copy, treat the confirmed copy as approved user copy and use it directly.
    - If the user only confirms the subject, scene, selling angle, or design direction without locking exact wording, generate exactly 3 visible-copy candidates using the requested text model when available.
    - If no specific visible copy is provided or confirmed, generate exactly 3 visible-copy candidates using the requested text model when available.
@@ -56,14 +61,14 @@ Do not ask the user to provide a professional prompt unless required information
    - Select the best AI candidate before image prompt generation.
    - If the text model is blocked, retry with a safer but equally commercial request.
    - Do not collapse into bland parameter-only copy after a filter event.
-6. Generate image prompts through the platform prompt-generation chain when available.
+7. Generate image prompts through the platform prompt-generation chain when available.
    - Keep the user prompt simple; put professional prompting details inside platform/Codex execution.
    - Use selected reference images through the official platform request path.
-7. Generate images through the platform image-generation chain.
+8. Generate images through the platform image-generation chain.
    - Call the ecommerce visual design platform's official generation API/workflow by default.
    - Ensure generated media, selected references, prompt records, generation chain/history, and QA metadata are registered when the platform supports them.
    - For high-risk scenes, produce at least one candidate per final image and retry failed/weak candidates through the platform chain when feasible.
-8. Inspect outputs before final response.
+9. Inspect outputs before final response.
    - Check image dimensions, file existence, platform fit, product accuracy, scene match, visible copy, composition, and obvious artifacts.
    - Confirm the output is visible in platform history/generation chain when the task generated images through Codex.
    - Do not create a standalone report file unless the user explicitly asks for a report, detailed step breakdown, prompt trace, or execution record.
@@ -71,10 +76,12 @@ Do not ask the user to provide a professional prompt unless required information
 ## Platform Chain Policy
 
 - Use the ecommerce visual design platform's official generation chain for normal image generation tasks from Codex.
+- Prefer the unified Codex/platform endpoint when available: `POST /api/ai-workspace/ecommerce-generate`.
 - Do not call low-level image providers directly by default.
 - Do not implement one-off generation scripts that call provider APIs directly for normal ecommerce image generation.
 - Do not save generated images only as filesystem files when the platform can register them.
 - The official chain should create platform-visible generation history, selected-reference records, prompt records, generated media records, and QA metadata when the platform supports them.
+- If the unified endpoint returns `status: "needs_input"`, ask the user to provide the missing fields before design or generation.
 - Direct provider calls are allowed only when the user explicitly asks to bypass the platform chain, or when the platform chain is unavailable and the user confirms fallback.
 - If bypassing the platform chain, clearly state before generating that the result will not appear in platform history.
 - If the platform chain fails, stop and report the exact failure unless the user explicitly approves a fallback path.
@@ -94,6 +101,8 @@ Read only the relevant reference files:
 - Default to text model `gpt-5.6-terra` and image model `gpt-image-2-03` when the user does not specify models.
 - Use the user's requested models if explicitly provided. If unavailable or blocked, report the exact failure and the fallback used.
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
+- If required facts are missing, ask concise follow-up questions before design or generation. Do not generate placeholder products, generic accessories, imagined promotions, or default marketplace facts.
+- When the unified ecommerce endpoint is available, pass the structured brief to it instead of creating temporary platform-chain scripts.
 - Before image generation, use confirmed user-approved copy directly when the user has confirmed exact visible wording. Otherwise call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked unconfirmed copy draft.
 - For actual image generation, prefer platform APIs such as copy generation, prompt generation, and workspace image generation over direct provider calls.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.

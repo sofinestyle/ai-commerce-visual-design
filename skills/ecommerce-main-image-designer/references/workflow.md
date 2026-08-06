@@ -14,7 +14,32 @@ Convert the user's short request into JSON-like working fields:
 - imageModel: requested image model, default to `gpt-image-2-03` if absent
 - language: infer from platform; Temu product image copy should usually be English unless the user asks otherwise
 
-Do not ask for missing creative details if they can be inferred from platform and product context.
+Do not ask for missing creative details if they can be inferred from platform and product context. Do ask for missing required commercial/product facts.
+
+## Required Facts Gate
+
+Before design planning, copy generation, prompt generation, or image generation, validate the brief:
+
+1. Required for any product-specific ecommerce image:
+   - exact SKU/product number
+   - existing product record or repository data for that SKU
+   - at least one verified usable product reference image for that SKU
+2. Required when marketplace rules affect layout, language, logo, background, or copy:
+   - platform/marketplace, unless explicitly inferable from the request
+3. Required for claim-sensitive copy:
+   - verified promotion, discount, limited-time offer, price, ranking, certification, guarantee, or performance evidence before using those claims
+4. Required for generation:
+   - image count and image role/type; if absent, ask rather than silently choosing a marketplace role that changes compliance
+
+If any required item is missing, stop before design or generation and return `needs_input` with the missing fields and concise questions. Do not fill missing product facts with assumptions, another SKU, generic product assets, or invented offers.
+
+Creative defaults are allowed only after required facts pass:
+
+- light/commercial lighting
+- clean composition
+- shopper-facing copy tone
+- neutral or platform-appropriate background
+- inferred copy language from platform
 
 ## Model Policy
 
@@ -36,11 +61,22 @@ Use this policy before copy generation or image generation:
 
 Use the ecommerce visual design platform's official generation chain for normal Codex image generation tasks:
 
-1. Use platform product/media/project context.
-2. Use platform copy-generation API/workflow for visible copy when available, unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
-3. Use platform prompt-generation API/workflow for image prompts when available.
-4. Use platform image-generation API/workflow for final images.
-5. Verify generated media and generation chain/history records exist when the platform supports them.
+1. Prefer `POST /api/ai-workspace/ecommerce-generate` when available.
+2. Use platform product/media/project context.
+3. Use platform copy-generation API/workflow for visible copy when available, unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
+4. Use platform prompt-generation API/workflow for image prompts when available.
+5. Use platform image-generation API/workflow for final images.
+6. Verify generated media and generation chain/history records exist when the platform supports them.
+
+The unified endpoint request should include:
+
+- `sku`, `platform`, `imageType`, `theme`, and `imageCount`
+- `scene`, `subject`, `sellingAngle`, or `designIntent` when provided
+- `brandLogoMode`: `auto`, `required`, or `forbidden`
+- `copyMode`: `auto`, `user_confirmed`, or `none`
+- `confirmedCopy` only when exact visible copy is user-approved
+- `promotion.verifiedOffer` before any promotion/limited-time/discount claim
+- `textModel` and `imageModel` when user selected models
 
 Do not call provider APIs directly or save generated images only as files unless the user explicitly asks to bypass the platform chain, or the platform chain is unavailable and the user confirms fallback. If fallback is used, state that platform history may not include the result.
 
@@ -71,6 +107,18 @@ Read product facts before copy or image prompts:
 
 If a fact is absent, leave it absent. Do not invent.
 
+If the SKU cannot be found, product data is empty, or no verified product image can be selected, stop and ask the user to correct the SKU or add product references.
+
+## Brief Intent Examples
+
+Handle compact user instructions as follows:
+
+- `制作1张 亚马逊主图，产品编号 W102-BR。` -> enough to plan/generate if SKU and references exist; apply Amazon main-image rules.
+- `制作1张产品图，产品编号 W102-BR，文案突出限时促销。` -> ask for platform and verified promotion details before design; do not invent limited-time copy.
+- `制作1张天猫使用场景图，产品编号 W102-BR，不要有logo，在室内拉琴。` -> enough if SKU/references exist; set logo mode to forbidden.
+- `制作3张主图，天猫使用，产品编号W102-BR，请从不同角度帮我分析如何设计。` -> use `plan_only` first; do not generate until the user confirms.
+- `制作2张电商图片，要有logo。` -> ask for SKU/product number and platform/image role before design.
+
 ## Design Intent
 
 For each final image, create an internal design intent:
@@ -99,15 +147,16 @@ Before image prompt generation, decide whether copy is user-approved or AI-gener
 
 Use this loop:
 
-1. Build facts and references.
-2. Resolve visible copy using the Visible Copy Decision rules above.
-3. If AI copy is needed, call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent, then validate and select the best copy candidate.
-4. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
-5. Call the platform image-generation chain to generate the image.
-6. Confirm generated media and generation chain/history records were created when the platform supports them.
-7. Inspect result.
-8. Retry through the platform chain if the result fails a critical check and time/model budget allows.
-9. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
+1. Run the Required Facts Gate.
+2. Build facts and references.
+3. Resolve visible copy using the Visible Copy Decision rules above.
+4. If AI copy is needed, call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent, then validate and select the best copy candidate.
+5. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
+6. Call the platform image-generation chain to generate the image.
+7. Confirm generated media and generation chain/history records were created when the platform supports them.
+8. Inspect result.
+9. Retry through the platform chain if the result fails a critical check and time/model budget allows.
+10. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
 
 ## Quality Feedback Loop
 

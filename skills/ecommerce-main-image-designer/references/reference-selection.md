@@ -12,6 +12,8 @@ Prefer references in this order:
 
 Avoid using another SKU's product body unless the exact SKU lacks that view and the user approves or the shared asset is clearly a brand-level accessory.
 
+If no verified product-body reference exists for the requested SKU, stop and ask the user to add/select product references. Do not generate a product-specific ecommerce main image from generic product knowledge alone.
+
 ## Theme Mapping
 
 - Front/main product: front, side, detail, logo.
