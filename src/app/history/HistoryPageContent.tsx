@@ -246,10 +246,10 @@ export function HistoryPageContent() {
                               metadata?.actualImageModel || metadata?.requestedImageModel,
                             )}`,
                             formatReferenceCount(metadata?.referenceImageCount),
-                          ].map((label) => (
+                          ].map((label, index) => (
                             <span
                               className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 font-medium"
-                              key={label}
+                              key={`${label}-${index}`}
                             >
                               {label}
                             </span>
