@@ -11,6 +11,7 @@ import {
 } from "@/lib/ai-workspace/referenceImageSelector";
 import { normalizeReferenceImageRole } from "@/lib/ai-workspace/referenceImageRules";
 import { loadVisualRule } from "@/lib/ai-workspace/visualSopLoader";
+import { getVisibleCopyPolicy } from "@/lib/ai-workspace/visibleCopyPolicy";
 import { defaultModelConfig } from "@/lib/modelDefaults";
 import { brandService } from "@/lib/services/brandService";
 import { mediaService } from "@/lib/services/mediaService";
@@ -380,10 +381,11 @@ async function resolvePlan(request: EcommerceGenerationRequest) {
     outputSpecification,
   });
   const copyMode = normalizeCopyMode(request.copyMode);
+  const visibleCopyPolicy = getVisibleCopyPolicy(visualRule);
   let visibleCopy: VisibleCopy | undefined;
   let copyCandidates: ImageCopyCandidate[] | undefined;
 
-  if (copyMode === "none") {
+  if (copyMode === "none" || !visibleCopyPolicy.allowed) {
     visibleCopy = { enabled: false };
   } else if (copyMode === "user_confirmed") {
     visibleCopy = buildVisibleCopyFromConfirmed(request.confirmedCopy);
