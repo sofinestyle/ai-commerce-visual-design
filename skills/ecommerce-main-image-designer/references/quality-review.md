@@ -5,6 +5,9 @@
 Reject or retry when any critical check fails:
 
 - wrong product type or SKU appearance
+- packaging is freely invented or materially different when a real packaging reference is required
+- accessory mismatch, missing verified accessories in a set image, or unverified accessories added
+- product scale/proportion is inconsistent with verified size or real usage context
 - wrong platform size/aspect ratio
 - requested scene missing
 - visible copy is illegible, misspelled, or covers the product
@@ -47,3 +50,12 @@ When a prior image is supplied as a quality benchmark, compare:
 - shopper appeal
 
 If the new image loses badly on copy or layout, regenerate or explain why.
+
+## Platform Feedback
+
+For recurring quality issues, prefer platform-level fixes over one-off Codex prompt workarounds:
+
+- Strengthen platform reference selection when real packaging, accessory, or detail photos are required.
+- Strengthen platform prompt rules when generated packaging, accessories, product proportions, or visible copy drift from facts.
+- Strengthen platform QA when defects can be detected from prompt metadata, selected-reference roles, or visual review.
+- Use direct provider calls only as an explicitly approved fallback, and note that they may not appear in platform history.

@@ -7,7 +7,7 @@ description: Execute professional ecommerce main-image design tasks from short u
 
 ## Goal
 
-Turn a short ecommerce image request into a complete design execution inside Codex: product facts, reference image selection, design intent, visible copy, image prompt, generation, media registration, and quality review.
+Turn a short ecommerce image request into a complete design execution inside Codex through the ecommerce visual design platform's official generation chain: product facts, reference image selection, design intent, visible copy, image prompt, generation, media registration, generation history, and quality review.
 
 The user should be able to write a compact task such as:
 
@@ -53,15 +53,28 @@ Do not ask the user to provide a professional prompt unless required information
    - Select the best candidate before image prompt generation.
    - If the text model is blocked, retry with a safer but equally commercial request.
    - Do not collapse into bland parameter-only copy after a filter event.
-6. Generate image prompts for the requested image model.
-   - Keep the user prompt simple; put professional prompting details inside Codex execution.
-   - Use reference images through the platform/provider path when available.
-7. Generate enough candidates to satisfy quality.
-   - For high-risk scenes, produce at least one candidate per final image and retry failed/weak candidates when feasible.
+6. Generate image prompts through the platform prompt-generation chain when available.
+   - Keep the user prompt simple; put professional prompting details inside platform/Codex execution.
+   - Use selected reference images through the official platform request path.
+7. Generate images through the platform image-generation chain.
+   - Call the ecommerce visual design platform's official generation API/workflow by default.
+   - Ensure generated media, selected references, prompt records, generation chain/history, and QA metadata are registered when the platform supports them.
+   - For high-risk scenes, produce at least one candidate per final image and retry failed/weak candidates through the platform chain when feasible.
 8. Inspect outputs before final response.
    - Check image dimensions, file existence, platform fit, product accuracy, scene match, visible copy, composition, and obvious artifacts.
-   - Register or save images to the relevant project/media location when the local platform supports it.
+   - Confirm the output is visible in platform history/generation chain when the task generated images through Codex.
    - Do not create a standalone report file unless the user explicitly asks for a report, detailed step breakdown, prompt trace, or execution record.
+
+## Platform Chain Policy
+
+- Use the ecommerce visual design platform's official generation chain for normal image generation tasks from Codex.
+- Do not call low-level image providers directly by default.
+- Do not implement one-off generation scripts that call provider APIs directly for normal ecommerce image generation.
+- Do not save generated images only as filesystem files when the platform can register them.
+- The official chain should create platform-visible generation history, selected-reference records, prompt records, generated media records, and QA metadata when the platform supports them.
+- Direct provider calls are allowed only when the user explicitly asks to bypass the platform chain, or when the platform chain is unavailable and the user confirms fallback.
+- If bypassing the platform chain, clearly state before generating that the result will not appear in platform history.
+- If the platform chain fails, stop and report the exact failure unless the user explicitly approves a fallback path.
 
 ## Load References
 
@@ -79,11 +92,13 @@ Read only the relevant reference files:
 - Use the user's requested models if explicitly provided. If unavailable or blocked, report the exact failure and the fallback used.
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
 - Before image generation, call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked copy draft.
+- For actual image generation, prefer platform APIs such as copy generation, prompt generation, and workspace image generation over direct provider calls.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.
 - Preserve SKU-specific product appearance over generic scene aesthetics.
 - For marketplace main images, prioritize product recognizability, clean composition, and readable copy over cinematic atmosphere.
 - If the requested subject includes children, use safe phrasing such as "school-age student musician" or "young student player" in internal prompts unless the user requires exact wording. Avoid unnecessary age details.
 - Do not let safety/filter recovery degrade copy quality. Replace risky phrasing with safe shopper-value phrasing.
+- When generated output reveals systematic issues such as packaging hallucination, accessory mismatch, instrument scale errors, or weak copy, prefer proposing improvements to platform rules/code over compensating only with one-off Codex prompts.
 - Do not save extra report files by default. Save a concise report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
 
 ## Final Response
@@ -92,6 +107,7 @@ Return:
 
 - model names actually used
 - output file links
+- platform history/generation-chain visibility status when images were generated
 - short QA summary
 - any caveats, especially model fallback/filtering
 

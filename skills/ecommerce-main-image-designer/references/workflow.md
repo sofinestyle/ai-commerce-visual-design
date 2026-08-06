@@ -32,6 +32,18 @@ Use this policy before copy generation or image generation:
    - Continue only after the user selects, unless the user says to use defaults.
 4. If the requested or selected model fails, retry according to the copy/image failure policy and report the exact fallback.
 
+## Platform Chain Policy
+
+Use the ecommerce visual design platform's official generation chain for normal Codex image generation tasks:
+
+1. Use platform product/media/project context.
+2. Use platform copy-generation API/workflow for visible copy when available.
+3. Use platform prompt-generation API/workflow for image prompts when available.
+4. Use platform image-generation API/workflow for final images.
+5. Verify generated media and generation chain/history records exist when the platform supports them.
+
+Do not call provider APIs directly or save generated images only as files unless the user explicitly asks to bypass the platform chain, or the platform chain is unavailable and the user confirms fallback. If fallback is used, state that platform history may not include the result.
+
 Example model-choice prompt:
 
 ```text
@@ -75,13 +87,25 @@ For each final image, create an internal design intent:
 Use this loop:
 
 1. Build facts and references.
-2. Call the text model to generate exactly 3 visible-copy candidates from product facts and design intent.
+2. Call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent.
 3. Validate and select the best copy candidate.
-4. Build image prompt from design intent, references, and the selected copy.
-5. Generate image.
-6. Inspect result.
-7. Retry if the result fails a critical check and time/model budget allows.
-8. Save output. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
+4. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
+5. Call the platform image-generation chain to generate the image.
+6. Confirm generated media and generation chain/history records were created when the platform supports them.
+7. Inspect result.
+8. Retry through the platform chain if the result fails a critical check and time/model budget allows.
+9. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
+
+## Quality Feedback Loop
+
+When generated images reveal repeatable defects, route the fix back into the platform system first:
+
+- packaging hallucination -> platform packaging-reference selection and prompt rules
+- accessory mismatch or missing real accessory photos -> platform accessory-reference selection and verified-accessory constraints
+- product scale/proportion errors -> platform prompt rules and QA checks for size/proportion
+- weak visible copy -> platform copy-generation prompt and copy-quality checks
+
+Use one-off Codex prompt patches only as a temporary fallback, not as the primary quality solution.
 
 ## Optional Reports
 
