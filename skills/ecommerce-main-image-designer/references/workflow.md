@@ -130,6 +130,30 @@ For each final image, create an internal design intent:
 - platform: apply marketplace style and output size
 - negative constraints: no unrelated products, no collage unless requested, no product color changes, no text covering the product
 
+## Plan-Only Design Schemes
+
+Use `mode: "plan_only"` when the user asks to "提供设计方案", "分析如何设计", "从不同角度设计", "先给方案", or similar planning language.
+
+The unified endpoint should return `designPlan.items`. Present those items to the user as a confirmation table with:
+
+- image index
+- image type/theme
+- subject
+- scene/background
+- selling angle
+- visible copy or copy direction
+- reference roles
+- logo mode
+- whether user confirmation or missing facts are needed
+
+For multi-image requests, each row should represent a distinct design angle whenever possible. Prefer angles such as product hero, material/detail value, complete set/accessory value, lifestyle usage, storage/carry convenience, or platform-specific trust/readability.
+
+After the user confirms:
+
+- If exact visible copy is confirmed, call generation with `copyMode: "user_confirmed"` and the confirmed copy for each item.
+- If only subject, scene, or selling direction is confirmed, call generation with `copyMode: "auto"` so the platform text model generates and selects copy.
+- Generate from the confirmed plan items instead of one generic image-count request when the rows have distinct angles.
+
 ## Visible Copy Decision
 
 Before image prompt generation, decide whether copy is user-approved or AI-generated:

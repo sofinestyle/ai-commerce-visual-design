@@ -22,6 +22,7 @@ import type {
   Platform,
   ReferenceImage,
   VisibleCopy,
+  ProductFacts,
 } from "@/lib/ai-workspace/types";
 
 type EcommerceGenerationMode = "plan_only" | "generate" | "plan_then_generate";
@@ -76,6 +77,26 @@ type EcommerceGenerationResolvedPlan = {
   theme: string;
 };
 
+type EcommerceDesignPlanItem = {
+  index: number;
+  imageType: ImageType;
+  theme: string;
+  subject: string;
+  scene: string;
+  sellingAngle: string;
+  visibleCopy: {
+    headline?: string;
+    subheadline?: string;
+    sellingPoints?: string[];
+    source: "ai_candidate" | "user_confirmed" | "none" | "suggested";
+  };
+  referenceRoles: string[];
+  logoMode: BrandLogoMode;
+  copyMode: EcommerceCopyMode;
+  designIntent: string;
+  needsConfirmation: boolean;
+};
+
 function readString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -88,6 +109,13 @@ function readImageCount(value: unknown) {
 
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function splitListText(value: string) {
+  return value
+    .split(/[、,，;；/|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function isPlatform(value: unknown): value is Platform {
@@ -272,6 +300,140 @@ function buildDesignIntent(input: {
   return parts.join("\n") || "电商主图设计，突出商品识别度、真实产品比例和购买理由。";
 }
 
+function summarizeReferenceRoles(references: ReferenceImage[]) {
+  return unique(
+    references.map((reference) => {
+      const role = normalizeReferenceImageRole(reference.type);
+
+      return role || reference.type || "reference";
+    }),
+  );
+}
+
+function getFallbackDesignAngles(input: {
+  imageCount: number;
+  productFacts: ProductFacts;
+  request: EcommerceGenerationRequest;
+  theme: string;
+}) {
+  const productName = input.productFacts.name || input.productFacts.category || "商品";
+  const category = input.productFacts.category || "商品";
+  const baseAngles = input.theme === "使用场景图"
+    ? [
+        {
+          scene: readString(input.request.scene) || "真实使用场景",
+          sellingAngle: "日常使用信心",
+          subject: readString(input.request.subject) || `${productName} 使用场景`,
+        },
+        {
+          scene: "学习、练习或体验场景",
+          sellingAngle: "适合入门与日常练习",
+          subject: `${category} 与使用者互动`,
+        },
+        {
+          scene: "整洁生活化空间",
+          sellingAngle: "收纳携带与套装便利",
+          subject: `${productName} 搭配必要配件`,
+        },
+      ]
+    : [
+        {
+          scene: readString(input.request.scene) || "浅色电商产品背景",
+          sellingAngle: readString(input.request.sellingAngle) || "商品整体识别",
+          subject: readString(input.request.subject) || `${productName} 主体展示`,
+        },
+        {
+          scene: "细节近景或质感背景",
+          sellingAngle: "材质与做工价值",
+          subject: `${productName} 关键细节`,
+        },
+        {
+          scene: "套装配件整齐陈列",
+          sellingAngle: "一套配齐更省心",
+          subject: `${productName} 与已验证配件`,
+        },
+      ];
+
+  return Array.from({ length: input.imageCount }, (_, index) => baseAngles[index % baseAngles.length]);
+}
+
+function buildDesignPlanItems(input: {
+  brandLogoMode: BrandLogoMode;
+  copyCandidates?: ImageCopyCandidate[];
+  copyMode: EcommerceCopyMode;
+  imageCount: number;
+  imageType: ImageType;
+  productFacts: ProductFacts;
+  request: EcommerceGenerationRequest;
+  selectedReferences: ReferenceImage[];
+  theme: string;
+  visibleCopy?: VisibleCopy;
+}) {
+  const fallbackAngles = getFallbackDesignAngles({
+    imageCount: input.imageCount,
+    productFacts: input.productFacts,
+    request: input.request,
+    theme: input.theme,
+  });
+  const sceneList = splitListText(readString(input.request.scene));
+  const referenceRoles = summarizeReferenceRoles(input.selectedReferences);
+
+  return Array.from({ length: input.imageCount }, (_, index): EcommerceDesignPlanItem => {
+    const candidate = input.copyCandidates?.[index];
+    const fallback = fallbackAngles[index];
+    const confirmedVisibleCopy =
+      input.copyMode === "user_confirmed" ? buildVisibleCopyFromConfirmed(input.request.confirmedCopy) : undefined;
+    const copySource: EcommerceDesignPlanItem["visibleCopy"]["source"] =
+      input.copyMode === "none" || input.visibleCopy?.enabled === false
+        ? "none"
+        : input.copyMode === "user_confirmed"
+        ? "user_confirmed"
+        : candidate
+        ? "ai_candidate"
+        : "suggested";
+    const visibleCopy =
+      copySource === "none"
+        ? { source: copySource }
+        : copySource === "user_confirmed"
+        ? {
+            headline: confirmedVisibleCopy?.headline,
+            sellingPoints: confirmedVisibleCopy?.sellingPoints,
+            source: copySource,
+            subheadline: confirmedVisibleCopy?.subheadline,
+          }
+        : {
+            headline: candidate?.headline,
+            sellingPoints: candidate?.sellingPoints,
+            source: copySource,
+            subheadline: candidate?.subheadline,
+          };
+    const scene = sceneList[index] || fallback.scene;
+    const sellingAngle = candidate?.angle || candidate?.positioning || fallback.sellingAngle;
+    const subject = readString(input.request.subject) || fallback.subject;
+
+    return {
+      copyMode: input.copyMode,
+      designIntent: [
+        `主体：${subject}`,
+        `场景：${scene}`,
+        `卖点方向：${sellingAngle}`,
+        input.brandLogoMode === "required" ? "Logo：必须展示" : "",
+        input.brandLogoMode === "forbidden" ? "Logo：不展示" : "",
+      ].filter(Boolean).join("\n"),
+      imageType: input.imageType,
+      index: index + 1,
+      logoMode: input.brandLogoMode,
+      needsConfirmation: true,
+      referenceRoles,
+      scene,
+      sellingAngle,
+      subject,
+      theme: input.theme,
+      visibleCopy,
+    };
+  });
+}
+
 function selectBestCopyCandidate(candidates: ImageCopyCandidate[]) {
   return [...candidates].sort(
     (left, right) => (right.qualityScore ?? 0) - (left.qualityScore ?? 0),
@@ -436,6 +598,22 @@ async function resolvePlan(request: EcommerceGenerationRequest) {
       candidates: request.options?.returnCopyCandidates ? copyCandidates : undefined,
       mode: copyMode,
       selected: visibleCopy,
+    },
+    designPlan: {
+      items: buildDesignPlanItems({
+        brandLogoMode,
+        copyCandidates,
+        copyMode,
+        imageCount,
+        imageType,
+        productFacts,
+        request,
+        selectedReferences: selected,
+        theme,
+        visibleCopy,
+      }),
+      needsUserConfirmation: true,
+      summary: `${platform} ${theme} ${imageCount} 张设计方案，产品编号 ${productFacts.sku}。`,
     },
     generationContext,
     generationGroupId,

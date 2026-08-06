@@ -51,6 +51,7 @@ Do not ask the user to provide a professional prompt unless required commercial/
    - scene/background
    - copy placement
    - negative constraints
+   - if the user asks to analyze, plan, propose, or design from different angles, use `mode: "plan_only"` first and return a confirmable design plan before generation
 6. Resolve visible copy before image prompt generation.
    - If the user requested a design plan that included specific visible copy, and then confirms that plan or explicitly asks to use that copy, treat the confirmed copy as approved user copy and use it directly.
    - If the user only confirms the subject, scene, selling angle, or design direction without locking exact wording, generate exactly 3 visible-copy candidates using the requested text model when available.
@@ -103,6 +104,8 @@ Read only the relevant reference files:
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
 - If required facts are missing, ask concise follow-up questions before design or generation. Do not generate placeholder products, generic accessories, imagined promotions, or default marketplace facts.
 - When the unified ecommerce endpoint is available, pass the structured brief to it instead of creating temporary platform-chain scripts.
+- For `plan_only`, return the endpoint's `designPlan.items` as a concise table with one row per intended image. Include subject, scene, selling angle, visible copy, reference roles, logo mode, and missing fact notes if any.
+- When the user confirms a design plan, generate from the confirmed plan items. If exact visible copy is confirmed, use `copyMode: "user_confirmed"`; if only angles or scenes are confirmed, use `copyMode: "auto"`.
 - Before image generation, use confirmed user-approved copy directly when the user has confirmed exact visible wording. Otherwise call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked unconfirmed copy draft.
 - For actual image generation, prefer platform APIs such as copy generation, prompt generation, and workspace image generation over direct provider calls.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.
