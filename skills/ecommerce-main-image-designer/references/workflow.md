@@ -75,8 +75,10 @@ The unified endpoint request should include:
 - `brandLogoMode`: `auto`, `required`, or `forbidden`
 - `copyMode`: `auto`, `user_confirmed`, or `none`
 - `confirmedCopy` only when exact visible copy is user-approved
+- `confirmedPlanItems` when a prior multi-row plan has been confirmed; each item should carry its own subject, scene, selling angle, design intent, and approved visible copy when available
 - `promotion.verifiedOffer` before any promotion/limited-time/discount claim
 - `textModel` and `imageModel` when user selected models
+- `options.generationConcurrency` for confirmed multi-row generation; default to `2`, do not exceed `3`
 
 Do not call provider APIs directly or save generated images only as files unless the user explicitly asks to bypass the platform chain, or the platform chain is unavailable and the user confirms fallback. If fallback is used, state that platform history may not include the result.
 
@@ -106,6 +108,7 @@ In new Codex conversations, execute through the unified endpoint as a state mach
    - If the user confirms exact visible copy, generate that row with `copyMode: "user_confirmed"` and `confirmedCopy`.
    - If the user confirms only subject, scene, or selling direction, generate that row with `copyMode: "auto"`.
    - Preserve each row's scene, subject, selling angle, and logo mode in the generation request.
+   - For two or more confirmed rows, call the endpoint once with `confirmedPlanItems` instead of sending separate sequential requests. Use `options.generationConcurrency: 2` by default; use `3` only for faster batches when provider/platform load is acceptable.
 
 Do not write temporary platform-chain scripts for normal tasks once this endpoint/service is available.
 
@@ -190,6 +193,7 @@ After the user confirms:
 - If exact visible copy is confirmed or edited, call generation with `copyMode: "user_confirmed"` and the confirmed copy for each item.
 - If only subject, scene, or selling direction is confirmed, call generation with `copyMode: "auto"` so the platform text model generates and selects copy.
 - Generate from the confirmed plan items instead of one generic image-count request when the rows have distinct angles.
+- For two or more confirmed plan items, send them in one unified endpoint request as `confirmedPlanItems` and allow the platform to run a controlled parallel batch. Keep the concurrency at `2` unless the user or platform context explicitly calls for `3`.
 
 ## Visible Copy Decision
 

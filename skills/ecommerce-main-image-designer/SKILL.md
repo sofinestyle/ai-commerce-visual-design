@@ -106,6 +106,7 @@ Read only the relevant reference files:
 - If required facts are missing, ask concise follow-up questions before design or generation. Do not generate placeholder products, generic accessories, imagined promotions, or default marketplace facts.
 - When the unified ecommerce endpoint is available, pass the structured brief to it instead of creating temporary platform-chain scripts.
 - Interpret user intent into endpoint mode: planning/analysis language -> `plan_only`; direct create/generate language -> `generate`; confirmation after a plan -> generate from the confirmed plan items.
+- When generating after a confirmed multi-row plan, pass the approved rows as `confirmedPlanItems` and set `options.generationConcurrency` to `2` by default, up to `3` only when the user or platform context asks for faster parallel execution.
 - Handle endpoint statuses strictly: `needs_input` -> ask only the missing questions; `planned` -> show the design plan table and wait for confirmation; `succeeded` -> return image links, model names, history visibility, and QA summary; `failed` -> report the exact failure.
 - For `plan_only`, return the endpoint's `designPlan.items` as a concise table with one row per intended image. Include subject, scene, selling angle, visible copy, reference roles, logo mode, and missing fact notes if any.
 - In `plan_only`, do not generate final five-section image prompts. If the user has not provided exact copy, show platform AI copy candidates as candidates that require confirmation, not as final approved copy.

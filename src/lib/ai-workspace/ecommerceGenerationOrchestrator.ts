@@ -29,6 +29,20 @@ type EcommerceGenerationMode = "plan_only" | "generate" | "plan_then_generate";
 type EcommerceCopyMode = "auto" | "user_confirmed" | "none";
 type BrandLogoMode = "auto" | "required" | "forbidden";
 
+type EcommerceConfirmedPlanItem = {
+  index?: number;
+  subject?: string;
+  scene?: string;
+  sellingAngle?: string;
+  designIntent?: string;
+  visibleCopy?: {
+    headline?: string;
+    subheadline?: string;
+    sellingPoints?: string[];
+    source?: string;
+  };
+};
+
 export type EcommerceGenerationRequest = {
   source?: "codex" | "web" | "cli";
   mode?: EcommerceGenerationMode;
@@ -52,9 +66,11 @@ export type EcommerceGenerationRequest = {
     intent?: string;
     verifiedOffer?: string;
   };
+  confirmedPlanItems?: EcommerceConfirmedPlanItem[];
   textModel?: string;
   imageModel?: string;
   options?: {
+    generationConcurrency?: number;
     returnCopyCandidates?: boolean;
     returnPrompt?: boolean;
   };
@@ -108,6 +124,12 @@ function readImageCount(value: unknown) {
     : 0;
 }
 
+function readConcurrency(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(Math.max(Math.floor(value), 1), 3)
+    : 2;
+}
+
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -117,6 +139,39 @@ function splitListText(value: string) {
     .split(/[、,，;；/|]+/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function readConfirmedPlanItems(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is EcommerceConfirmedPlanItem =>
+    Boolean(item && typeof item === "object"),
+  );
+}
+
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+) {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(Math.floor(concurrency), 1), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const currentIndex = nextIndex;
+
+        nextIndex += 1;
+        results[currentIndex] = await worker(items[currentIndex], currentIndex);
+      }
+    }),
+  );
+
+  return results;
 }
 
 function isPlatform(value: unknown): value is Platform {
@@ -638,7 +693,125 @@ async function resolvePlan(
   };
 }
 
-export async function runEcommerceImageGeneration(request: EcommerceGenerationRequest) {
+function hasConfirmedVisibleCopy(item: EcommerceConfirmedPlanItem) {
+  return Boolean(
+    readString(item.visibleCopy?.headline) ||
+      readString(item.visibleCopy?.subheadline) ||
+      (item.visibleCopy?.sellingPoints ?? []).some((point) => readString(point)),
+  );
+}
+
+function buildRequestFromConfirmedPlanItem(input: {
+  baseRequest: EcommerceGenerationRequest;
+  item: EcommerceConfirmedPlanItem;
+}) {
+  const hasCopy = hasConfirmedVisibleCopy(input.item);
+  const copyMode: EcommerceCopyMode =
+    input.item.visibleCopy?.source === "none"
+      ? "none"
+      : hasCopy
+      ? "user_confirmed"
+      : normalizeCopyMode(input.baseRequest.copyMode);
+
+  return {
+    ...input.baseRequest,
+    confirmedPlanItems: undefined,
+    confirmedCopy: hasCopy
+      ? {
+          headline: input.item.visibleCopy?.headline,
+          sellingPoints: input.item.visibleCopy?.sellingPoints,
+          subheadline: input.item.visibleCopy?.subheadline,
+        }
+      : input.baseRequest.confirmedCopy,
+    copyMode,
+    designIntent: readString(input.item.designIntent) || readString(input.baseRequest.designIntent),
+    imageCount: 1,
+    mode: "generate" as const,
+    scene: readString(input.item.scene) || readString(input.baseRequest.scene),
+    sellingAngle: readString(input.item.sellingAngle) || readString(input.baseRequest.sellingAngle),
+    subject: readString(input.item.subject) || readString(input.baseRequest.subject),
+  } satisfies EcommerceGenerationRequest;
+}
+
+async function runConfirmedPlanItemsGeneration(input: {
+  items: EcommerceConfirmedPlanItem[];
+  request: EcommerceGenerationRequest;
+}) {
+  const validationRequest = {
+    ...input.request,
+    confirmedPlanItems: undefined,
+    copyMode: "none" as const,
+    imageCount: input.items.length,
+    mode: "plan_only" as const,
+  };
+  const validation = await resolvePlan(validationRequest, { includePrompt: false });
+
+  if (validation.status === "needs_input") {
+    return validation;
+  }
+
+  const concurrency = readConcurrency(input.request.options?.generationConcurrency);
+  const startedAt = Date.now();
+  const settled = await mapWithConcurrency(input.items, concurrency, async (item, index) => {
+    try {
+      const result = await runSingleEcommerceImageGeneration(
+        buildRequestFromConfirmedPlanItem({
+          baseRequest: input.request,
+          item,
+        }),
+      );
+
+      if (result.status === "needs_input") {
+        return {
+          error: result.questions.join("；"),
+          index: item.index ?? index + 1,
+          missingFields: result.missingFields,
+          status: "failed" as const,
+        };
+      }
+
+      if (result.status !== "succeeded") {
+        return {
+          error: "已确认方案生成未返回成功状态。",
+          index: item.index ?? index + 1,
+          status: "failed" as const,
+        };
+      }
+
+      return {
+        generation: result.generation,
+        generationGroupId: result.generationGroupId,
+        historyVisible: result.historyVisible,
+        index: item.index ?? index + 1,
+        prompt: result.prompt,
+        status: "succeeded" as const,
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error),
+        index: item.index ?? index + 1,
+        status: "failed" as const,
+      };
+    }
+  });
+  const successfulItems = settled.filter((item) => item.status === "succeeded");
+  const failedItems = settled.filter((item) => item.status === "failed");
+
+  return {
+    ...validation,
+    batch: {
+      concurrency,
+      durationMs: Date.now() - startedAt,
+      failedCount: failedItems.length,
+      items: settled,
+      requestedCount: input.items.length,
+      succeededCount: successfulItems.length,
+    },
+    status: failedItems.length > 0 ? ("partial" as const) : ("succeeded" as const),
+  };
+}
+
+async function runSingleEcommerceImageGeneration(request: EcommerceGenerationRequest) {
   const mode = normalizeMode(request.mode);
   const resolved = await resolvePlan(request, {
     includePrompt: mode !== "plan_only",
@@ -706,4 +879,18 @@ export async function runEcommerceImageGeneration(request: EcommerceGenerationRe
     },
     status: "succeeded" as const,
   };
+}
+
+export async function runEcommerceImageGeneration(request: EcommerceGenerationRequest) {
+  const mode = normalizeMode(request.mode);
+  const confirmedPlanItems = readConfirmedPlanItems(request.confirmedPlanItems);
+
+  if (mode !== "plan_only" && confirmedPlanItems.length > 0) {
+    return runConfirmedPlanItemsGeneration({
+      items: confirmedPlanItems,
+      request,
+    });
+  }
+
+  return runSingleEcommerceImageGeneration(request);
 }
