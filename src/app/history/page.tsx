@@ -1,16 +1,12 @@
-import { AppShell } from "@/components/layout/AppShell";
-import { ModulePlaceholderPage } from "@/components/layout/ModulePlaceholderPage";
+import type { Metadata } from "next";
+
+import { HistoryPageContent } from "./HistoryPageContent";
+
+export const metadata: Metadata = {
+  title: "生成历史",
+  description: "查看电商视觉生成任务的历史记录和输出资产。",
+};
 
 export default function HistoryPage() {
-  return (
-    <AppShell>
-      <ModulePlaceholderPage
-        title="History"
-        subtitle="View generation history."
-        searchPlaceholder="Search history"
-        emptyTitle="No history yet"
-        emptyDescription="Generation history, revisions, and activity placeholders will appear here."
-      />
-    </AppShell>
-  );
+  return <HistoryPageContent />;
 }
