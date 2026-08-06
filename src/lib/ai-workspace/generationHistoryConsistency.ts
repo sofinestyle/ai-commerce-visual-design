@@ -74,6 +74,14 @@ function readMediaIds(images: GeneratedImage[]) {
   return new Set(images.map((image) => image.mediaId).filter(hasText));
 }
 
+function normalizeComparableText(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function matchesText(left: unknown, right: unknown) {
+  return normalizeComparableText(left) === normalizeComparableText(right);
+}
+
 function scoreIssues(issues: GenerationHistoryConsistencyIssue[]) {
   return Math.max(
     0,
@@ -159,7 +167,7 @@ export function validateGenerationHistoryConsistency(
       severity: "critical",
     });
   } else {
-    if (input.requested?.platform && record.platform !== input.requested.platform) {
+    if (input.requested?.platform && !matchesText(record.platform, input.requested.platform)) {
       addIssue(issues, {
         id: "platform-mismatch",
         message: `generationRecord 平台为 ${record.platform}，与请求 ${input.requested.platform} 不一致。`,
@@ -198,11 +206,13 @@ export function validateGenerationHistoryConsistency(
   const draft = input.generationChainDraft;
 
   if (!draft) {
-    addIssue(issues, {
-      id: "missing-generation-chain-draft",
-      message: "缺少 generationChainDraft，前端无法展示完整生成链草稿。",
-      severity: "critical",
-    });
+    if (!input.historyGroups) {
+      addIssue(issues, {
+        id: "missing-generation-chain-draft",
+        message: "缺少 generationChainDraft，前端无法展示完整生成链草稿。",
+        severity: "critical",
+      });
+    }
   } else {
     if (input.requested?.sku && draft.session?.sku !== input.requested.sku) {
       addIssue(issues, {
@@ -212,7 +222,7 @@ export function validateGenerationHistoryConsistency(
       });
     }
 
-    if (input.requested?.platform && draft.session?.platform !== input.requested.platform) {
+    if (input.requested?.platform && !matchesText(draft.session?.platform, input.requested.platform)) {
       addIssue(issues, {
         id: "session-platform-mismatch",
         message: `生成链 session 平台为 ${draft.session?.platform ?? "缺失"}，与请求 ${input.requested.platform} 不一致。`,

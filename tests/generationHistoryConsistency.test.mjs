@@ -139,3 +139,27 @@ test("generation history consistency catches missing media history linkage", () 
     result.issues.some((issue) => issue.id === "media-missing-in-history-media-1"),
   );
 });
+
+test("generation history consistency compares platform values case-insensitively", () => {
+  const fixture = createCompleteFixture();
+  const result = validateGenerationHistoryConsistency({
+    ...fixture,
+    requested: {
+      ...fixture.requested,
+      platform: "temu",
+    },
+  });
+
+  assert.equal(result.status, "consistent");
+});
+
+test("generation history consistency can audit persisted history without transient draft", () => {
+  const fixture = createCompleteFixture();
+  const result = validateGenerationHistoryConsistency({
+    ...fixture,
+    generationChainDraft: null,
+  });
+
+  assert.equal(result.status, "consistent");
+  assert.deepEqual(result.issues, []);
+});
