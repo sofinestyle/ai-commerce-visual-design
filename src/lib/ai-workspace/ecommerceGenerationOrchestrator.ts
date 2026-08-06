@@ -95,6 +95,7 @@ type EcommerceDesignPlanItem = {
   copyMode: EcommerceCopyMode;
   designIntent: string;
   needsConfirmation: boolean;
+  copyConfirmationRequired: boolean;
 };
 
 function readString(value: unknown) {
@@ -423,6 +424,7 @@ function buildDesignPlanItems(input: {
       imageType: input.imageType,
       index: index + 1,
       logoMode: input.brandLogoMode,
+      copyConfirmationRequired: copySource === "ai_candidate" || copySource === "suggested",
       needsConfirmation: true,
       referenceRoles,
       scene,
@@ -465,7 +467,10 @@ function buildVisibleCopyFromConfirmed(
   };
 }
 
-async function resolvePlan(request: EcommerceGenerationRequest) {
+async function resolvePlan(
+  request: EcommerceGenerationRequest,
+  options: { includePrompt: boolean },
+) {
   const validation = await validateRequiredFacts(request);
 
   if (validation.needsInput || !validation.product) {
@@ -576,11 +581,14 @@ async function resolvePlan(request: EcommerceGenerationRequest) {
     visualRule,
     outputSpecification,
   });
-  const prompts = await generateWorkspacePromptCandidates({
-    generationContext,
-    promptModels: [readString(request.textModel) || "gpt-5.6-terra"],
-  });
-  const prompt = prompts[0];
+  const prompt = options.includePrompt
+    ? (
+        await generateWorkspacePromptCandidates({
+          generationContext,
+          promptModels: [readString(request.textModel) || "gpt-5.6-terra"],
+        })
+      )[0]
+    : undefined;
   const generationGroupId = `codex-${productFacts.sku}-${platform}-${theme}-${Date.now()}`;
   const resolvedPlan: EcommerceGenerationResolvedPlan = {
     designIntent,
@@ -618,7 +626,7 @@ async function resolvePlan(request: EcommerceGenerationRequest) {
     generationContext,
     generationGroupId,
     models: {
-      actualTextModel: prompt.promptModel || readString(request.textModel) || "gpt-5.6-terra",
+      actualTextModel: prompt?.promptModel || readString(request.textModel) || "gpt-5.6-terra",
       requestedImageModel: readString(request.imageModel) || defaultModelConfig.imageModel,
       requestedTextModel: readString(request.textModel) || "gpt-5.6-terra",
     },
@@ -632,7 +640,9 @@ async function resolvePlan(request: EcommerceGenerationRequest) {
 
 export async function runEcommerceImageGeneration(request: EcommerceGenerationRequest) {
   const mode = normalizeMode(request.mode);
-  const resolved = await resolvePlan(request);
+  const resolved = await resolvePlan(request, {
+    includePrompt: mode !== "plan_only",
+  });
 
   if (resolved.status === "needs_input") {
     return resolved;
@@ -640,6 +650,10 @@ export async function runEcommerceImageGeneration(request: EcommerceGenerationRe
 
   if (mode === "plan_only") {
     return resolved;
+  }
+
+  if (!resolved.prompt) {
+    throw new Error("生成前必须先生成五段式 Prompt。");
   }
 
   const imageModel = readString(request.imageModel) || defaultModelConfig.imageModel;

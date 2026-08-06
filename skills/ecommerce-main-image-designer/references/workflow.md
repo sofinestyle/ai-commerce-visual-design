@@ -98,11 +98,12 @@ In new Codex conversations, execute through the unified endpoint as a state mach
 3. Call `POST /api/ai-workspace/ecommerce-generate` when the app server/auth path is available. If direct HTTP auth is unavailable in Codex, call the underlying platform service function with the same structured request.
 4. Handle response status:
    - `needs_input`: ask only the returned questions; do not continue planning or generating.
-   - `planned`: present `designPlan.items` as the design方案 table and wait for confirmation.
+   - `planned`: present `designPlan.items` as the design方案 table and wait for confirmation. Treat AI copy in the table as copy candidates until the user confirms or edits it.
    - `succeeded`: return output links, actual models, platform history/generation-chain visibility, and QA summary.
    - `failed` or thrown error: report the exact platform failure and stop unless the user approves a retry or fallback.
 5. Confirmation rules:
-   - If the plan row includes exact visible copy and the user confirms it, generate that row with `copyMode: "user_confirmed"` and `confirmedCopy`.
+   - If the plan row includes AI-generated copy candidates, ask the user to confirm, edit, or reject the copy before treating it as final visible copy.
+   - If the user confirms exact visible copy, generate that row with `copyMode: "user_confirmed"` and `confirmedCopy`.
    - If the user confirms only subject, scene, or selling direction, generate that row with `copyMode: "auto"`.
    - Preserve each row's scene, subject, selling angle, and logo mode in the generation request.
 
@@ -162,6 +163,14 @@ For each final image, create an internal design intent:
 
 Use `mode: "plan_only"` when the user asks to "提供设计方案", "分析如何设计", "从不同角度设计", "先给方案", or similar planning language.
 
+Plan-only flow:
+
+1. Codex/platform reads product facts, platform rules, and reference image information.
+2. Codex structures the design scheme: subject, scene, selling angle, reference roles, logo mode, and constraints.
+3. If exact visible copy is absent, call the platform AI copy model to generate copy candidates and show them for user confirmation.
+4. If exact visible copy is already provided, use it directly in the plan.
+5. Do not generate the final five-section image prompt during plan-only. Generate final prompts only after the user confirms the plan/copy and asks to generate images.
+
 The unified endpoint should return `designPlan.items`. Present those items to the user as a confirmation table with:
 
 - image index
@@ -178,7 +187,7 @@ For multi-image requests, each row should represent a distinct design angle when
 
 After the user confirms:
 
-- If exact visible copy is confirmed, call generation with `copyMode: "user_confirmed"` and the confirmed copy for each item.
+- If exact visible copy is confirmed or edited, call generation with `copyMode: "user_confirmed"` and the confirmed copy for each item.
 - If only subject, scene, or selling direction is confirmed, call generation with `copyMode: "auto"` so the platform text model generates and selects copy.
 - Generate from the confirmed plan items instead of one generic image-count request when the rows have distinct angles.
 
