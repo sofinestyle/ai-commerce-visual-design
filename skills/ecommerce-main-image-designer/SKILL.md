@@ -78,6 +78,7 @@ Do not ask the user to provide a professional prompt unless required commercial/
 
 - Use the ecommerce visual design platform's official generation chain for normal image generation tasks from Codex.
 - Prefer the unified Codex/platform endpoint when available: `POST /api/ai-workspace/ecommerce-generate`.
+- Treat the unified endpoint as the stable Codex agent contract. Convert user language into its structured request fields, call it, then follow its returned status instead of recreating platform logic in conversation.
 - Do not call low-level image providers directly by default.
 - Do not implement one-off generation scripts that call provider APIs directly for normal ecommerce image generation.
 - Do not save generated images only as filesystem files when the platform can register them.
@@ -104,6 +105,8 @@ Read only the relevant reference files:
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
 - If required facts are missing, ask concise follow-up questions before design or generation. Do not generate placeholder products, generic accessories, imagined promotions, or default marketplace facts.
 - When the unified ecommerce endpoint is available, pass the structured brief to it instead of creating temporary platform-chain scripts.
+- Interpret user intent into endpoint mode: planning/analysis language -> `plan_only`; direct create/generate language -> `generate`; confirmation after a plan -> generate from the confirmed plan items.
+- Handle endpoint statuses strictly: `needs_input` -> ask only the missing questions; `planned` -> show the design plan table and wait for confirmation; `succeeded` -> return image links, model names, history visibility, and QA summary; `failed` -> report the exact failure.
 - For `plan_only`, return the endpoint's `designPlan.items` as a concise table with one row per intended image. Include subject, scene, selling angle, visible copy, reference roles, logo mode, and missing fact notes if any.
 - When the user confirms a design plan, generate from the confirmed plan items. If exact visible copy is confirmed, use `copyMode: "user_confirmed"`; if only angles or scenes are confirmed, use `copyMode: "auto"`.
 - Before image generation, use confirmed user-approved copy directly when the user has confirmed exact visible wording. Otherwise call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked unconfirmed copy draft.

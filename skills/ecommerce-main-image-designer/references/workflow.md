@@ -80,6 +80,34 @@ The unified endpoint request should include:
 
 Do not call provider APIs directly or save generated images only as files unless the user explicitly asks to bypass the platform chain, or the platform chain is unavailable and the user confirms fallback. If fallback is used, state that platform history may not include the result.
 
+## Codex Unified Endpoint Protocol
+
+In new Codex conversations, execute through the unified endpoint as a state machine:
+
+1. Parse natural language into endpoint fields:
+   - `sku`: product number/SKU exactly as written.
+   - `platform`: Amazon, TEMU, SHEIN, 天猫, 抖店, or 独立站 when present.
+   - `imageType`: use `主图` for marketplace main/listing images, `详情页` for detail-page images.
+   - `theme`: use `首图`, `产品图`, `使用场景图`, or `详情页` based on the user wording and platform rule vocabulary.
+   - `imageCount`: requested count.
+   - `scene`, `subject`, `sellingAngle`, `brandLogoMode`, `copyMode`, `confirmedCopy`, `textModel`, and `imageModel` from explicit user instructions or prior confirmed plan items.
+2. Choose mode:
+   - `plan_only` when the user asks for a design plan, analysis, proposal, options, or different angles.
+   - `generate` when the user directly asks to create/generate images and required facts are present.
+   - After the user confirms a plan, generate from the confirmed `designPlan.items`, not from a generic count request when rows differ.
+3. Call `POST /api/ai-workspace/ecommerce-generate` when the app server/auth path is available. If direct HTTP auth is unavailable in Codex, call the underlying platform service function with the same structured request.
+4. Handle response status:
+   - `needs_input`: ask only the returned questions; do not continue planning or generating.
+   - `planned`: present `designPlan.items` as the design方案 table and wait for confirmation.
+   - `succeeded`: return output links, actual models, platform history/generation-chain visibility, and QA summary.
+   - `failed` or thrown error: report the exact platform failure and stop unless the user approves a retry or fallback.
+5. Confirmation rules:
+   - If the plan row includes exact visible copy and the user confirms it, generate that row with `copyMode: "user_confirmed"` and `confirmedCopy`.
+   - If the user confirms only subject, scene, or selling direction, generate that row with `copyMode: "auto"`.
+   - Preserve each row's scene, subject, selling angle, and logo mode in the generation request.
+
+Do not write temporary platform-chain scripts for normal tasks once this endpoint/service is available.
+
 Example model-choice prompt:
 
 ```text
