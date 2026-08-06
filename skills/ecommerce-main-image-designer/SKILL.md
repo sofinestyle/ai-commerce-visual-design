@@ -46,11 +46,14 @@ Do not ask the user to provide a professional prompt unless required information
    - scene/background
    - copy placement
    - negative constraints
-5. Generate exactly 3 visible-copy candidates using the requested text model when available.
-   - Base the candidates on product facts and design intent.
+5. Resolve visible copy before image prompt generation.
+   - If the user requested a design plan that included specific visible copy, and then confirms that plan or explicitly asks to use that copy, treat the confirmed copy as approved user copy and use it directly.
+   - If the user only confirms the subject, scene, selling angle, or design direction without locking exact wording, generate exactly 3 visible-copy candidates using the requested text model when available.
+   - If no specific visible copy is provided or confirmed, generate exactly 3 visible-copy candidates using the requested text model when available.
+   - Base AI copy candidates on product facts and design intent.
    - Include candidate angle, headline, subheadline, selling points, positioning, evidence, score, and rationale.
    - Translate product facts into shopper benefits for visible selling points; keep raw facts in evidence instead of using them as parameter-only badges.
-   - Select the best candidate before image prompt generation.
+   - Select the best AI candidate before image prompt generation.
    - If the text model is blocked, retry with a safer but equally commercial request.
    - Do not collapse into bland parameter-only copy after a filter event.
 6. Generate image prompts through the platform prompt-generation chain when available.
@@ -91,7 +94,7 @@ Read only the relevant reference files:
 - Default to text model `gpt-5.6-terra` and image model `gpt-image-2-03` when the user does not specify models.
 - Use the user's requested models if explicitly provided. If unavailable or blocked, report the exact failure and the fallback used.
 - If the user asks to choose models, inspect the current system/project-supported text and image models, list them by numbered options, and ask the user to reply with option numbers. Do not ask the user to type raw model IDs unless model discovery fails.
-- Before image generation, call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked copy draft.
+- Before image generation, use confirmed user-approved copy directly when the user has confirmed exact visible wording. Otherwise call the text model to generate exactly 3 main-image copy candidates and choose one. Do not generate images from a single unranked unconfirmed copy draft.
 - For actual image generation, prefer platform APIs such as copy generation, prompt generation, and workspace image generation over direct provider calls.
 - Keep product facts factual. Use emotional benefits and shopper language, but do not invent certifications, rankings, guarantees, medical claims, prices, or unverified performance claims.
 - Preserve SKU-specific product appearance over generic scene aesthetics.

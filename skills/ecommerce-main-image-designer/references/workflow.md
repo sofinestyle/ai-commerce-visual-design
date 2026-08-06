@@ -37,7 +37,7 @@ Use this policy before copy generation or image generation:
 Use the ecommerce visual design platform's official generation chain for normal Codex image generation tasks:
 
 1. Use platform product/media/project context.
-2. Use platform copy-generation API/workflow for visible copy when available.
+2. Use platform copy-generation API/workflow for visible copy when available, unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
 3. Use platform prompt-generation API/workflow for image prompts when available.
 4. Use platform image-generation API/workflow for final images.
 5. Verify generated media and generation chain/history records exist when the platform supports them.
@@ -82,13 +82,26 @@ For each final image, create an internal design intent:
 - platform: apply marketplace style and output size
 - negative constraints: no unrelated products, no collage unless requested, no product color changes, no text covering the product
 
+## Visible Copy Decision
+
+Before image prompt generation, decide whether copy is user-approved or AI-generated:
+
+1. Use confirmed user copy directly when both are true:
+   - Codex or the user previously provided specific headline/subheadline/selling-point wording in the design plan or instruction.
+   - The user confirms that plan/copy, or explicitly says to use that copy.
+2. Do not treat a generic approval of subject, scene, image count, or selling angle as approval of exact visible wording.
+3. If exact visible copy is absent or not confirmed, call the platform copy-generation chain to generate exactly 3 candidates and select the best one.
+4. Pass the copy source into the prompt-generation request when possible:
+   - `source: "user_confirmed"` for confirmed plan/user copy.
+   - `source: "ai_candidate"` plus candidate id/model/score for platform-generated copy.
+
 ## Generation Loop
 
 Use this loop:
 
 1. Build facts and references.
-2. Call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent.
-3. Validate and select the best copy candidate.
+2. Resolve visible copy using the Visible Copy Decision rules above.
+3. If AI copy is needed, call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent, then validate and select the best copy candidate.
 4. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
 5. Call the platform image-generation chain to generate the image.
 6. Confirm generated media and generation chain/history records were created when the platform supports them.

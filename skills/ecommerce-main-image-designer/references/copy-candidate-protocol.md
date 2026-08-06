@@ -2,7 +2,14 @@
 
 ## Requirement
 
-Before generating an image, call the text model to generate exactly 3 ecommerce main-image copy candidates from:
+Before generating an image, call the text model to generate exactly 3 ecommerce main-image copy candidates unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
+
+Use confirmed copy directly when both are true:
+
+- Codex or the user already supplied exact headline/subheadline/selling-point wording.
+- The user confirmed that design plan/copy, or explicitly said to use it.
+
+When exact visible copy is absent or only a selling direction is confirmed, generate exactly 3 ecommerce main-image copy candidates from:
 
 - structured user brief
 - product facts

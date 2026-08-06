@@ -2,7 +2,7 @@
 
 ## Copy Objective
 
-Main-image copy should sell the product in shopper language, not merely list parameters. Before image generation, call the text model to produce exactly 3 copy candidates and select the best one.
+Main-image copy should sell the product in shopper language, not merely list parameters. Before image generation, call the text model to produce exactly 3 copy candidates and select the best one unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
 
 Each candidate balances:
 
