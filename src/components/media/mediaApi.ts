@@ -81,33 +81,6 @@ export type ImportFolderItem = {
   usageType: ImportedMediaUsageType;
 };
 
-export type ScannedProductMediaCandidate = {
-  category: string;
-  classificationReason: string;
-  classificationSource: "manual" | "unknown" | "vision";
-  classificationStatus: "classified" | "unclassified";
-  confidence: number;
-  contentHash: string;
-  error?: string;
-  fileSize: number;
-  filename: string;
-  id: string;
-  mimeType: string;
-  previewUrl: string;
-  qualityDimensions: null;
-  qualityFlags: string[];
-  qualityScore: null;
-  qualityScoreReason: string;
-  relativePath: string;
-  reviewStatus: "pending";
-  sku: string;
-  sourceInStandardSkuFolder: boolean;
-  status: "error" | "pending" | "ready";
-  storageFolder: string;
-  suggestedUsageType: ImportedMediaUsageType;
-  usageType: ImportedMediaUsageType;
-};
-
 async function readJsonResponse<T>(response: Response, fallbackError: string) {
   const result = (await response.json()) as ApiResponse<T>;
 
@@ -315,17 +288,6 @@ export async function importMediaFolder(items: ImportFolderItem[]) {
       body: JSON.stringify({ items }),
     },
     "导入失败。",
-  );
-}
-
-export async function scanPublicMediaProductFolder() {
-  const response = await fetch("/api/media/scan-product-folder");
-
-  return (
-    (await readJsonResponse<{
-      candidates: ScannedProductMediaCandidate[];
-      root: string;
-    }>(response, "public/media 扫描失败。")) ?? { candidates: [], root: "public/media" }
   );
 }
 

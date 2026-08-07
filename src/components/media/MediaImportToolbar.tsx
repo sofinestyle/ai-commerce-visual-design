@@ -23,7 +23,6 @@ export function MediaImportToolbar({
   onSelectBrandFile,
   onSelectBrandFolder,
   onSelectProductFolder,
-  onSelectProductFolderFallback,
   selectedImportCandidateCount,
   selectedVisionModel,
   setBrandImportName,
@@ -45,7 +44,6 @@ export function MediaImportToolbar({
   onSelectBrandFile: () => void;
   onSelectBrandFolder: () => void;
   onSelectProductFolder: () => void;
-  onSelectProductFolderFallback: () => void;
   selectedImportCandidateCount: number;
   selectedVisionModel: string;
   setBrandImportName: (name: string) => void;
@@ -173,20 +171,10 @@ export function MediaImportToolbar({
             className="min-w-24 whitespace-nowrap"
             onClick={onSelectProductFolder}
             size="sm"
-            title="默认扫描 public/media 文件夹"
+            title="选择 public/media 下的产品素材子文件夹"
             type="button"
           >
             导入产品素材
-          </AppButton>
-          <AppButton
-            className="min-w-24 whitespace-nowrap"
-            onClick={onSelectProductFolderFallback}
-            size="sm"
-            title="手动选择其他产品素材文件夹"
-            type="button"
-            variant="secondary"
-          >
-            选择其他文件夹
           </AppButton>
         </div>
       </div>
@@ -251,7 +239,7 @@ export function MediaImportToolbar({
       <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-slate-600">
         {brandOnly || importMode === "brand"
           ? "品牌资产模式：请选择品牌资料文件夹，或选择单个/多个 JPG、PNG、WEBP、PDF 文件；导入后会复制到 public/media/品牌/{品牌名}/，PDF 不参与 AI 分类和质量评分。"
-          : "产品素材模式：点击“导入产品素材”会默认扫描 public/media；也可手动选择单个类目文件夹或单个 SKU 文件夹。支持 SKU 下的原图、转换图、参考图等子文件夹，已导入图片会自动标记并跳过。"}
+          : "产品素材模式：请选择 public/media 下的单个类目文件夹或单个 SKU 文件夹。支持 SKU 下的原图、转换图、参考图等子文件夹。同一次导入不支持跨类目，已导入图片会自动标记并跳过。"}
       </div>
 
       <div className={`mt-4 grid gap-3 ${brandOnly ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
@@ -260,7 +248,7 @@ export function MediaImportToolbar({
             {brandOnly ? "1. 选择文件夹或文件" : "1. 选择文件夹"}
           </p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            {brandOnly ? "选择包含品牌图片/PDF 资料的文件夹，或直接选择单个/多个资料文件。" : "默认扫描 public/media；如需导入其他来源，可手动选择单个类目或单个 SKU 文件夹。"}
+            {brandOnly ? "选择包含品牌图片/PDF 资料的文件夹，或直接选择单个/多个资料文件。" : "在系统窗口中进入 public/media，选择单个类目或单个 SKU 文件夹。"}
           </p>
         </div>
         {!brandOnly ? (

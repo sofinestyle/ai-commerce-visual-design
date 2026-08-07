@@ -16,8 +16,6 @@ let importResult = { importedCount: 0 };
 let classifiedItems = null;
 let classifiedModel = null;
 let classificationResults = [];
-let scannedProducts = null;
-let scanResult = [];
 
 const routeStubs = {
   "@/lib/apiResponse": {
@@ -52,37 +50,6 @@ const routeStubs = {
       },
     },
   },
-  "@/lib/prisma": {
-    prisma: {
-      product: {
-        findMany: async (query) => {
-          scannedProducts = query;
-
-          return [
-            {
-              category: "小提琴",
-              sku: "W102-BR",
-            },
-          ];
-        },
-      },
-    },
-  },
-  "@/lib/services/publicMediaImportScanner": {
-    scanPublicMediaProductCandidates: async ({ products }) => {
-      scanResult = products;
-
-      return [
-        {
-          category: "小提琴",
-          filename: "front.jpg",
-          id: "scan-1",
-          relativePath: "media/小提琴/W102-BR/原图/front.jpg",
-          sku: "W102-BR",
-        },
-      ];
-    },
-  },
 };
 
 function loadMediaImportRoute(relativePath) {
@@ -98,41 +65,6 @@ beforeEach(() => {
   classifiedItems = null;
   classifiedModel = null;
   classificationResults = [];
-  scannedProducts = null;
-  scanResult = [];
-});
-
-test("scan-product-folder scans default public media products after auth", async () => {
-  const { GET } = loadMediaImportRoute("src/app/api/media/scan-product-folder/route.ts");
-  const response = await GET();
-  const body = await readJson(response);
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(scannedProducts, {
-    select: {
-      category: true,
-      sku: true,
-    },
-    where: {
-      deletedAt: null,
-    },
-  });
-  assert.deepEqual(scanResult, [{ category: "小提琴", sku: "W102-BR" }]);
-  assert.deepEqual(body, {
-    success: true,
-    data: {
-      candidates: [
-        {
-          category: "小提琴",
-          filename: "front.jpg",
-          id: "scan-1",
-          relativePath: "media/小提琴/W102-BR/原图/front.jpg",
-          sku: "W102-BR",
-        },
-      ],
-      root: "public/media",
-    },
-  });
 });
 
 test("check-import-duplicates validates items and forwards sanitized payload", async () => {

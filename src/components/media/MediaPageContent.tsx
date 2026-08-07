@@ -208,7 +208,6 @@ export function MediaPageContent({ section = "library" }: { section?: MediaSecti
     addVisionModel,
     openBrandFolderPicker,
     openProductFolderPicker,
-    openProductFolderPickerFallback,
     readySelectedImportCandidates,
     scanImportFolder,
     selectedImportCandidates,
@@ -380,7 +379,6 @@ export function MediaPageContent({ section = "library" }: { section?: MediaSecti
               onSelectBrandFile={openBrandFilePicker}
               onSelectBrandFolder={openBrandFolderPicker}
               onSelectProductFolder={openProductFolderPicker}
-              onSelectProductFolderFallback={openProductFolderPickerFallback}
               selectedImportCandidateCount={selectedImportCandidates.length}
               selectedVisionModel={selectedVisionModel}
               setBrandImportName={setBrandImportName}

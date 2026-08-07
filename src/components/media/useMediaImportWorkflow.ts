@@ -31,7 +31,6 @@ import {
   classifyImportImages,
   createCustomModel,
   importMediaFolder,
-  scanPublicMediaProductFolder,
   uploadBrandImportFile,
 } from "./mediaApi";
 import {
@@ -296,10 +295,6 @@ export function useMediaImportWorkflow({
   }
 
   function openProductFolderPicker() {
-    void scanPublicMediaFolder();
-  }
-
-  function openProductFolderPickerFallback() {
     pendingImportModeRef.current = "product";
     setImportMode("product");
     setImportError(null);
@@ -733,45 +728,6 @@ export function useMediaImportWorkflow({
     }
   }
 
-  async function scanPublicMediaFolder() {
-    try {
-      setImportMode("product");
-      pendingImportModeRef.current = "product";
-      setImportError(null);
-      setImportCompletedCount(0);
-      setSelectedImportIds([]);
-      importCandidates.forEach((candidate) => {
-        if (candidate.previewUrl.startsWith("blob:")) {
-          URL.revokeObjectURL(candidate.previewUrl);
-        }
-      });
-
-      const result = await scanPublicMediaProductFolder();
-      const nextCandidates = result.candidates;
-
-      if (nextCandidates.length === 0) {
-        setImportCandidates([]);
-        setImportError("public/media 下未扫描到可导入的 JPG、PNG 或 WEBP 产品素材。");
-        return;
-      }
-
-      setImportCandidates(nextCandidates);
-      setImportError(
-        nextCandidates.some((candidate) => candidate.status === "error")
-          ? "public/media 中部分图片存在错误，请检查后再确认导入。"
-          : "已默认扫描 public/media。可按类目/SKU 分组勾选并导入；需要导入其他目录时，请使用浏览器文件夹选择备用入口。",
-      );
-      void checkImportDuplicates(nextCandidates);
-    } catch (requestError) {
-      setImportCandidates([]);
-      setImportError(
-        requestError instanceof Error
-          ? `${requestError.message} 可改用浏览器文件夹选择备用入口。`
-          : "public/media 扫描失败，可改用浏览器文件夹选择备用入口。",
-      );
-    }
-  }
-
   async function confirmFolderImport() {
     if (!canConfirmImport) {
       setImportError(
@@ -887,7 +843,6 @@ export function useMediaImportWorkflow({
     openBrandFolderPicker,
     openBrandFilePicker,
     openProductFolderPicker,
-    openProductFolderPickerFallback,
     readySelectedImportCandidates,
     scanImportFolder,
     selectedImportCandidates,
