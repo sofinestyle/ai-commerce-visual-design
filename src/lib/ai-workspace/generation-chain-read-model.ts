@@ -17,9 +17,12 @@ export type GenerationChainMediaAsset = {
 };
 
 export type GenerationChainMetadataSummary = {
+  attempt: number | null;
   actualImageModel: string | null;
   imageType: string | null;
+  decision: string | null;
   platform: string | null;
+  failureTypes: string[];
   promptActualModel: string | null;
   promptFallbackReason: string | null;
   promptRequestedModel: string | null;
@@ -110,7 +113,9 @@ export function readGenerationMetadataSummary(
   const visualRule = readRecord(generationMetadata.visualRule);
 
   return {
+    attempt: readNumber(generationMetadata.attempt),
     actualImageModel: readString(generationMetadata.actualImageModel),
+    decision: readString(qualityReview.decision),
     imageType: readString(generationMetadata.imageType),
     platform: readString(generationMetadata.platform),
     promptActualModel: readString(promptObservability.actualModel),
@@ -119,6 +124,9 @@ export function readGenerationMetadataSummary(
     promptSource: readString(promptObservability.source),
     qualityScore: readNumber(qualityReview.score),
     qualityStatus: readString(qualityReview.status),
+    failureTypes: Array.isArray(qualityReview.failureTypes)
+      ? qualityReview.failureTypes.filter((item) => typeof item === "string").map((item) => item.trim())
+      : [],
     referenceImageCount: readNumber(generationMetadata.referenceImageCount),
     requestedImageModel: readString(generationMetadata.requestedImageModel),
     sku: readString(asset.sku),

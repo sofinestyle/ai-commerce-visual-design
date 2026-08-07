@@ -83,7 +83,7 @@ export function GenerationChainPanel({ generationGroupId }: GenerationChainPanel
           <p className="mt-1 text-xs text-slate-500">
             {chain?.images.length
               ? `共 ${chain.images.length} 个版本，当前仅显示最近 ${visibleImages.length} 条。`
-              : "按生成组追踪初始生成和继续设计结果。"}
+              : "按生成组追踪初始生成和局部修改结果。"}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -129,6 +129,21 @@ export function GenerationChainPanel({ generationGroupId }: GenerationChainPanel
                 <span className="rounded-full bg-white px-2 py-0.5 font-semibold text-blue-700">
                   {image.status}
                 </span>
+                {image.metadataSummary.attempt ? (
+                  <span className="rounded-full bg-white px-2 py-0.5 font-semibold text-slate-600">
+                    Attempt {image.metadataSummary.attempt}
+                  </span>
+                ) : null}
+                {image.metadataSummary.decision ? (
+                  <span className="rounded-full bg-white px-2 py-0.5 font-semibold text-emerald-700">
+                    {image.metadataSummary.decision}
+                  </span>
+                ) : null}
+                {image.revisionMode === "local_edit" ? (
+                  <span className="rounded-full bg-white px-2 py-0.5 font-semibold text-slate-600">
+                    局部修改
+                  </span>
+                ) : null}
               </div>
               <div className="min-w-0">
                 <p className="truncate font-medium text-slate-700">
@@ -143,6 +158,11 @@ export function GenerationChainPanel({ generationGroupId }: GenerationChainPanel
                     {image.prompt || "初始生成 Prompt"}
                   </p>
                 )}
+                {image.metadataSummary.failureTypes.length ? (
+                  <p className="mt-1 truncate text-slate-500">
+                    失败类型：{image.metadataSummary.failureTypes.join(", ")}
+                  </p>
+                ) : null}
               </div>
               <a
                 className="font-semibold text-blue-700 hover:text-blue-800"
