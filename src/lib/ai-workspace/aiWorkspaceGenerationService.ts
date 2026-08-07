@@ -51,6 +51,11 @@ type LegacyGenerationMetadata = {
   projectId?: string;
 };
 
+type GenerationExecutionOptions = {
+  attempt?: number;
+  maxAttempts?: number;
+};
+
 function readString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -454,6 +459,7 @@ function buildProductProfile(product: RequestProduct | Product): ProductProfile 
 async function executeGenerationRequest(
   generationRequest: GenerationRequest,
   legacyMetadata: LegacyGenerationMetadata = {},
+  options: GenerationExecutionOptions = {},
 ) {
   const productSku = generationRequest.productFacts.sku;
   const taskIntent = generationRequest.output.platform;
@@ -565,6 +571,7 @@ async function executeGenerationRequest(
   const promptObservability = summarizePromptObservability(generationRequest);
   const qualityReview = reviewGeneratedImages({
     actualImageModel,
+    attempt: options.attempt,
     imageType,
     images: result.images,
     promptValidation: promptObservability.validation,
@@ -573,6 +580,7 @@ async function executeGenerationRequest(
     referenceImages,
     requestedImageCount: imageCount,
     requestedImageModel: imageModel || null,
+    maxAttempts: options.maxAttempts,
     theme,
     visualRule: generationRequest.visualRule,
   });
@@ -589,6 +597,10 @@ async function executeGenerationRequest(
       ...buildStyleSignals(customRequirements),
       generationMetadata: {
         ...generationMetadata,
+        attempt: qualityReview.attempt,
+        decision: qualityReview.decision,
+        failureTypes: qualityReview.failureTypes,
+        maxAttempts: qualityReview.maxAttempts,
         actualImageModel,
         requestedImageModel: imageModel || null,
       },
@@ -678,12 +690,18 @@ async function executeGenerationRequest(
   };
 }
 
-export async function generateFromWorkspaceRequest(body: unknown) {
-  return executeGenerationRequest(readWorkspaceGenerationRequest(body));
+export async function generateFromWorkspaceRequest(
+  body: unknown,
+  options?: GenerationExecutionOptions,
+) {
+  return executeGenerationRequest(readWorkspaceGenerationRequest(body), {}, options);
 }
 
-export async function generateFromLegacyCompatibleRequest(body: unknown) {
+export async function generateFromLegacyCompatibleRequest(
+  body: unknown,
+  options?: GenerationExecutionOptions,
+) {
   const { generationRequest, legacyMetadata } = normalizeLegacyGenerateInput(body);
 
-  return executeGenerationRequest(generationRequest, legacyMetadata);
+  return executeGenerationRequest(generationRequest, legacyMetadata, options);
 }

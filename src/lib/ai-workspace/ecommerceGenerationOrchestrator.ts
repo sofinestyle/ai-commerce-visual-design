@@ -17,6 +17,7 @@ import { brandService } from "@/lib/services/brandService";
 import { mediaService } from "@/lib/services/mediaService";
 import { productService } from "@/lib/services/productService";
 import type {
+  GeneratedImageQualityReview,
   ImageCopyCandidate,
   ImageType,
   Platform,
@@ -128,6 +129,18 @@ function readConcurrency(value: unknown) {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.min(Math.max(Math.floor(value), 1), 3)
     : 2;
+}
+
+function shouldContinueRetry(input: {
+  attempt: number;
+  maxAttempts: number;
+  qualityReview?: GeneratedImageQualityReview;
+}) {
+  if (!input.qualityReview) {
+    return false;
+  }
+
+  return input.qualityReview.decision === "retry" && input.attempt < input.maxAttempts;
 }
 
 function unique(values: string[]) {
@@ -907,52 +920,84 @@ async function runSingleEcommerceImageGeneration(request: EcommerceGenerationReq
   }
 
   const imageModel = readString(request.imageModel) || defaultModelConfig.imageModel;
-  const result = await generateFromWorkspaceRequest({
-    generationRequest: {
-      context: {
-        designIntent: resolved.plan.designIntent,
-        generationContextId: resolved.generationGroupId,
-        sourcePage: "ai-workspace",
-        visibleCopy: resolved.generationContext.visibleCopy,
+  let attempt = 1;
+  let maxAttempts = 3;
+
+  let generationResult;
+
+  while (true) {
+    generationResult = await generateFromWorkspaceRequest(
+      {
+        generationRequest: {
+          context: {
+            designIntent: resolved.plan.designIntent,
+            generationContextId: resolved.generationGroupId,
+            sourcePage: "ai-workspace",
+            visibleCopy: resolved.generationContext.visibleCopy,
+          },
+          model: {
+            imageModel,
+          },
+          output: {
+            aspectRatio: resolved.generationContext.outputSpecification.aspectRatio,
+            imageCount: resolved.plan.imageCount,
+            imageType: resolved.plan.imageType,
+            language: resolved.generationContext.language.label,
+            languageCode: resolved.generationContext.language.code,
+            platform: resolved.plan.platform,
+            size: resolved.generationContext.outputSpecification.outputSize,
+            theme: resolved.plan.theme,
+          },
+          productFacts: resolved.productFacts,
+          prompt: {
+            actualPromptModel: resolved.prompt.apiModel,
+            chineseSummary: resolved.prompt.chinesePromptSummary,
+            englishPrompt: resolved.prompt.englishPrompt,
+            fallbackReason: resolved.prompt.fallbackReason,
+            promptModel: resolved.prompt.promptModel,
+            promptModelLabel: resolved.prompt.promptModelLabel,
+            requestedPromptModel: readString(request.textModel) || defaultModelConfig.promptModel,
+            source: resolved.prompt.source === "model" ? "llm" : "builder",
+            validation: resolved.prompt.promptValidation,
+          },
+          referenceImages: resolved.plan.selectedReferences,
+          taskType: "generate",
+          visualRule: resolved.visualRule,
+        },
       },
-      model: {
-        imageModel,
+      {
+        attempt,
+        maxAttempts,
       },
-      output: {
-        aspectRatio: resolved.generationContext.outputSpecification.aspectRatio,
-        imageCount: resolved.plan.imageCount,
-        imageType: resolved.plan.imageType,
-        language: resolved.generationContext.language.label,
-        languageCode: resolved.generationContext.language.code,
-        platform: resolved.plan.platform,
-        size: resolved.generationContext.outputSpecification.outputSize,
-        theme: resolved.plan.theme,
-      },
-      productFacts: resolved.productFacts,
-      prompt: {
-        actualPromptModel: resolved.prompt.apiModel,
-        chineseSummary: resolved.prompt.chinesePromptSummary,
-        englishPrompt: resolved.prompt.englishPrompt,
-        fallbackReason: resolved.prompt.fallbackReason,
-        promptModel: resolved.prompt.promptModel,
-        promptModelLabel: resolved.prompt.promptModelLabel,
-        requestedPromptModel: readString(request.textModel) || defaultModelConfig.promptModel,
-        source: resolved.prompt.source === "model" ? "llm" : "builder",
-        validation: resolved.prompt.promptValidation,
-      },
-      referenceImages: resolved.plan.selectedReferences,
-      taskType: "generate",
-      visualRule: resolved.visualRule,
-    },
-  });
+    );
+
+    const currentReview = generationResult.generationRecord?.qualityReview;
+    if (currentReview?.maxAttempts) {
+      maxAttempts = currentReview.maxAttempts;
+    }
+
+    if (!shouldContinueRetry({
+      attempt,
+      maxAttempts,
+      qualityReview: currentReview,
+    })) {
+      break;
+    }
+
+    attempt += 1;
+  }
+
+  if (!generationResult) {
+    throw new Error("Generation request returned no result.");
+  }
 
   return {
     ...resolved,
-    generation: result,
-    historyVisible: Boolean(result.generationChainDraft),
+    generation: generationResult,
+    historyVisible: Boolean(generationResult.generationChainDraft),
     models: {
       ...resolved.models,
-      actualImageModel: result.generationRecord?.actualImageModel || imageModel,
+      actualImageModel: generationResult.generationRecord?.actualImageModel || imageModel,
     },
     status: "succeeded" as const,
   };
