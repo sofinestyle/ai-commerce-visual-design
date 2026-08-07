@@ -28,7 +28,7 @@ Do not require actual paid image generation for cases whose expected behavior st
 
 Generated files in `reports/` are ignored by git.
 
-The current core set includes 25 logic/prompt contract cases covering required facts, platform conflicts, logo/reference safety, copy policy, unified-chain routing, and local-revision routing.
+The current core set includes 30 logic/prompt contract cases covering required facts, platform conflicts, logo/reference safety, copy policy, unified-chain routing, and local-revision routing.
 
 ## Manual Review
 
@@ -44,8 +44,8 @@ For behavior that cannot be proven by the P0 deterministic runner, capture:
 
 ```text
 Skill Eval
-Cases: 25
-Passed: 25
+Cases: 30
+Passed: 30
 Failed: 0
 Skill Success Rate: 100%
 Required Facts Accuracy: 100%

@@ -310,5 +310,83 @@
       "requiredReferences": ["workflow.md", "local-revision.md", "quality-review.md"],
       "behavior": "large background/person replacement should route away from narrow local edit into regeneration"
     }
+  },
+  {
+    "id": "shein-main-image-logic-path",
+    "prompt": "制作1张SHEIN主图，产品编号 L301-GN。",
+    "expected": {
+      "request": {
+        "platform": "SHEIN",
+        "sku": "L301-GN",
+        "imageType": "主图",
+        "copyMode": "auto"
+      },
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "unsupported platform should still use general generation path with required product facts and references"
+    }
+  },
+  {
+    "id": "temu-detail-page-no-special-rules",
+    "prompt": "制作1张TEMU详情页，产品编号 W102-BR。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "sku": "W102-BR",
+        "imageType": "详情页",
+        "theme": "详情页",
+        "copyMode": "auto"
+      },
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "copy.md"],
+      "behavior": "详情页类请求应解析到正确 imageType/theme 并走标准 fact/reference 流程"
+    }
+  },
+  {
+    "id": "independent-accessory-unbranded-safe",
+    "prompt": "制作1张独立站产品图，产品编号 W102-BR，展示品牌琴包。",
+    "expected": {
+      "request": {
+        "platform": "独立站",
+        "sku": "W102-BR",
+        "imageType": "主图",
+        "theme": "产品图",
+        "copyMode": "auto",
+        "brandedAccessoryMode": "generic_unbranded_or_omit"
+      },
+      "promptConstraints": ["branded_accessory_unbranded_or_omitted"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "lack of accessory reference should keep accessory details unbranded/omitted"
+    }
+  },
+  {
+    "id": "temu-auto-brand-identity-logo-required-without-asset",
+    "prompt": "制作1张TEMU主图，产品编号 L301-GN，增强品牌识别氛围。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "sku": "L301-GN",
+        "imageType": "主图",
+        "copyMode": "auto",
+        "brandLogoMode": "forbidden"
+      },
+      "promptConstraints": ["no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "brand identity mention without true logo asset should not allow visible logo"
+    }
+  },
+  {
+    "id": "temu-auto-brand-identity-logo-allowed-with-asset",
+    "prompt": "制作1张TEMU主图，产品编号 W102-BR，增强品牌识别氛围。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "sku": "W102-BR",
+        "imageType": "主图",
+        "copyMode": "auto",
+        "brandLogoMode": "required"
+      },
+      "selectedReferenceRoles": ["front", "brand_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "brand identity mention with true logo asset should allow brand logo selection"
+    }
   }
 ]
