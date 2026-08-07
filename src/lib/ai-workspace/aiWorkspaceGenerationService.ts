@@ -585,6 +585,24 @@ async function executeGenerationRequest(
     visualRule: generationRequest.visualRule,
   });
 
+  const perImageQualityReviews = result.images.map((image) =>
+    reviewGeneratedImages({
+      actualImageModel,
+      attempt: options.attempt,
+      imageType,
+      images: [image],
+      promptValidation: promptObservability.validation,
+      productFacts: generationRequest.productFacts,
+      referenceImageCount: referenceImages.length,
+      referenceImages,
+      requestedImageCount: 1,
+      requestedImageModel: imageModel || null,
+      maxAttempts: options.maxAttempts,
+      theme,
+      visualRule: generationRequest.visualRule,
+    }),
+  );
+
   const generationGroupId =
     readString(generationRequest.context.generationContextId) || result.taskId;
   const generatedMedia = await mediaService.saveGeneratedImagesAsDraft({
@@ -624,7 +642,7 @@ async function executeGenerationRequest(
       generatedMedia[index]?.status === "final"
         ? ("final" as const)
         : ("draft" as const),
-    qualityReview,
+    qualityReview: perImageQualityReviews[index] || qualityReview,
   }));
   const responseResult = {
     ...result,
