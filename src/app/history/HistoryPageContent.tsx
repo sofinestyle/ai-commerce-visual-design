@@ -106,6 +106,7 @@ function matchesSearch(group: GenerationChainGroup, searchTerm: string) {
     ...group.images.flatMap((image) => [
       image.editIntent,
       image.id,
+      image.imageFileStatus,
       image.metadataSummary.actualImageModel ?? "",
       image.metadataSummary.imageType ?? "",
       image.metadataSummary.platform ?? "",
@@ -126,6 +127,35 @@ function matchesSearch(group: GenerationChainGroup, searchTerm: string) {
     .join(" ")
     .toLowerCase()
     .includes(normalizedSearch);
+}
+
+function HistoryImageThumbnail({
+  image,
+}: {
+  image: GenerationChainGroup["images"][number];
+}) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const isMissing = image.imageFileStatus === "missing" || loadFailed;
+
+  if (isMissing) {
+    return (
+      <div className="flex aspect-square w-24 items-center justify-center rounded-md border border-amber-200 bg-amber-50 px-2 text-center text-xs font-semibold leading-5 text-amber-700">
+        文件缺失
+      </div>
+    );
+  }
+
+  return (
+    <a href={image.imageUrl} rel="noreferrer" target="_blank">
+      {/* eslint-disable-next-line @next/next/no-img-element -- History thumbnails can be generated media URLs. */}
+      <img
+        alt={image.version || image.id}
+        className="aspect-square w-24 rounded-md border border-blue-100 bg-white object-cover"
+        onError={() => setLoadFailed(true)}
+        src={image.imageUrl}
+      />
+    </a>
+  );
 }
 
 export function HistoryPageContent() {
@@ -283,14 +313,7 @@ export function HistoryPageContent() {
                             {image.status}
                           </p>
                         </div>
-                        <a href={image.imageUrl} rel="noreferrer" target="_blank">
-                          {/* eslint-disable-next-line @next/next/no-img-element -- History thumbnails can be generated media URLs. */}
-                          <img
-                            alt={image.version || image.id}
-                            className="aspect-square w-24 rounded-md border border-blue-100 bg-white object-cover"
-                            src={image.imageUrl}
-                          />
-                        </a>
+                        <HistoryImageThumbnail image={image} />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-slate-800">
                             {image.parentImageId
@@ -303,6 +326,11 @@ export function HistoryPageContent() {
                           <p className="mt-1 text-xs text-slate-500">
                             {formatTime(image.createdAt)}
                           </p>
+                          {image.imageFileStatus === "missing" ? (
+                            <p className="mt-1 text-xs font-semibold text-amber-700">
+                              本地图片文件缺失：{image.imageFileCheckedPath || image.imageUrl}
+                            </p>
+                          ) : null}
                           <div className="mt-3 grid gap-1 text-xs text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
                             <span>
                               平台：{formatOptional(image.metadataSummary.platform)}
@@ -337,14 +365,20 @@ export function HistoryPageContent() {
                             </span>
                           </div>
                         </div>
-                        <a
-                          className="self-start text-sm font-semibold text-blue-700 hover:text-blue-800"
-                          href={image.imageUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          查看图片
-                        </a>
+                        {image.imageFileStatus === "missing" ? (
+                          <span className="self-start text-sm font-semibold text-amber-700">
+                            文件缺失
+                          </span>
+                        ) : (
+                          <a
+                            className="self-start text-sm font-semibold text-blue-700 hover:text-blue-800"
+                            href={image.imageUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            查看图片
+                          </a>
+                        )}
                       </div>
                     ))}
                   </div>

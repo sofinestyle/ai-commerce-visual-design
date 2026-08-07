@@ -56,6 +56,8 @@ test("buildGenerationChainImageNode maps Media fields into a version-chain node"
     generationGroupId: "group-1",
     id: "media-1",
     imageUrl: "/preview.png",
+    imageFileCheckedPath: null,
+    imageFileStatus: "unchecked",
     mediaId: "media-1",
     metadataSummary: {
       actualImageModel: null,
@@ -132,6 +134,44 @@ test("readGenerationMetadataSummary extracts platform chain observability fields
       visualRuleId: "temu-main-product",
     },
   );
+});
+
+test("buildGenerationChainGroups flags missing local image files for review", () => {
+  const groups = buildGenerationChainGroups([
+    {
+      createdAt: "2026-07-04T00:00:00.000Z",
+      generationGroupId: "group-1",
+      id: "media-1",
+      imageFileCheckedPath: "/media/missing.png",
+      imageFileStatus: "missing",
+      imageVersion: "v1",
+      prompt: "Prompt",
+      status: "draft",
+      storagePath: "/media/missing.png",
+      styleSignals: {
+        generationMetadata: {
+          actualImageModel: "gpt-image-2-03",
+          imageType: "主图",
+          platform: "temu",
+          referenceImageCount: 1,
+          requestedImageModel: "gpt-image-2-03",
+        },
+        promptObservability: {
+          actualModel: "gpt-5.6-terra",
+          source: "builder",
+        },
+        qualityReview: {
+          score: 88,
+          status: "needs_review",
+        },
+      },
+    },
+  ]);
+
+  assert.equal(groups[0].images[0].imageFileStatus, "missing");
+  assert.equal(groups[0].images[0].imageFileCheckedPath, "/media/missing.png");
+  assert.equal(groups[0].consistency.status, "needs_review");
+  assert.match(groups[0].consistency.issues[0].message, /本地图片文件缺失/);
 });
 
 test("buildGenerationChainGroups groups by generation group and links continue-design children", () => {

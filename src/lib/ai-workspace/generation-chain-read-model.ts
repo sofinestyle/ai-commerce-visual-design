@@ -1,6 +1,8 @@
 type JsonObject = Record<string, unknown>;
 
 export type GenerationChainMediaAsset = {
+  imageFileCheckedPath?: string | null;
+  imageFileStatus?: "available" | "missing" | "unchecked";
   id: string;
   generationGroupId?: string | null;
   imageVersion?: string | null;
@@ -40,6 +42,8 @@ export type GenerationChainImageNode = {
   status: string;
   prompt: string;
   imageUrl: string;
+  imageFileCheckedPath: string | null;
+  imageFileStatus: "available" | "missing" | "unchecked";
   parentImageId: string | null;
   editIntent: string;
   metadataSummary: GenerationChainMetadataSummary;
@@ -167,6 +171,8 @@ export function buildGenerationChainImageNode(
     status: asset.status,
     prompt: asset.prompt || "",
     imageUrl: asset.previewImage || asset.storagePath,
+    imageFileCheckedPath: asset.imageFileCheckedPath ?? null,
+    imageFileStatus: asset.imageFileStatus ?? "unchecked",
     parentImageId: editMetadata.parentImageId,
     editIntent: editMetadata.editIntent,
     metadataSummary: readGenerationMetadataSummary(asset),
@@ -210,6 +216,14 @@ function buildDisplayConsistency(
         id: `missing-image-url-${image.id}`,
         message: `${image.id} 缺少图片地址。`,
         severity: "critical",
+      });
+    }
+
+    if (image.imageFileStatus === "missing") {
+      issues.push({
+        id: `missing-image-file-${image.id}`,
+        message: `${image.id} 的本地图片文件缺失，历史页将显示占位缩略图。`,
+        severity: "warning",
       });
     }
 
