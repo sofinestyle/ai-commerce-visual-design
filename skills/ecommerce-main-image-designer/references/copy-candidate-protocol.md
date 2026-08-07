@@ -2,7 +2,12 @@
 
 ## Requirement
 
-Before generating an image, call the text model to generate exactly 3 ecommerce main-image copy candidates unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
+Before generating an image, call the text model to generate exactly 3 ecommerce main-image copy candidates only when all of these are true:
+
+- Visible copy is allowed by platform rules.
+- The image role benefits from visible copy.
+- The user has not confirmed exact visible copy from a design plan or explicit copy instruction.
+- `copyMode` is not `none`.
 
 Use confirmed copy directly when both are true:
 
@@ -18,7 +23,7 @@ When exact visible copy is absent or only a selling direction is confirmed, gene
 - design intent
 - selected references, summarized by role
 
-Use the skill's model policy. If the user did not specify a text model, use `gpt-5.6-terra`.
+Use the skill's model policy. If the user did not specify a text model, use the platform's current configured default prompt model.
 
 ## Output Contract
 
@@ -102,7 +107,7 @@ Each candidate must include a 0-100 score. Score with:
 - Shopper-benefit selling points instead of parameter dumping: 10
 - Layout feasibility: 10
 
-Prefer candidates scoring 88 or higher. If all 3 score below 85, retry once with a stricter copy request when feasible.
+Prefer candidates scoring 88 or higher. If all 3 score below 85, follow the copy quality failure policy in `failure-recovery.md`: retry at most once, then use the highest fact-safe candidate with a review note or ask the user to confirm/edit copy.
 
 ## Selection Rules
 

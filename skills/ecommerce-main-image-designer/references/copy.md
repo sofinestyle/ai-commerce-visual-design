@@ -2,7 +2,7 @@
 
 ## Copy Objective
 
-Main-image copy should sell the product in shopper language, not merely list parameters. Before image generation, call the text model to produce exactly 3 copy candidates and select the best one unless the user has already confirmed exact visible copy from a design plan or explicit copy instruction.
+Main-image copy should sell the product in shopper language, not merely list parameters. Before image generation, call the text model to produce exactly 3 copy candidates and select the best one only when visible copy is allowed by platform rules, the image role benefits from copy, the user has not confirmed exact visible copy, and `copyMode` is not `none`.
 
 Each candidate balances:
 
@@ -73,15 +73,9 @@ Instead, keep a safe emotional shopper promise plus factual support:
 - `Start Practice Faster`
 - `More Value in One Box`
 
-## Text Model Failure Recovery
+## Failure Recovery
 
-If the requested text model is filtered:
-
-1. Retry with a smaller, safer copy-only request that still asks for exactly 3 candidates.
-2. Remove unnecessary sensitive descriptors.
-3. Ask for "student musician" or "young learner" copy rather than detailed child scene narration.
-4. Keep `response_format: json_object` where supported.
-5. If still blocked, use 3 high-quality local fallback candidates and clearly report the failure.
+For text-model filtering, weak candidates, and local fallback copy, follow `failure-recovery.md`.
 
 ## Fact Policy
 

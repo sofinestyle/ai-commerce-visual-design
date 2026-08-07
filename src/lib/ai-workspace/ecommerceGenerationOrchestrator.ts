@@ -211,6 +211,32 @@ function containsClaimSensitivePromotion(input: EcommerceGenerationRequest) {
   return /限时|促销|折扣|打折|优惠|降价|秒杀|特价|limited\s*time|sale|discount|deal|off\b/i.test(text);
 }
 
+function getBriefText(input: EcommerceGenerationRequest) {
+  return [
+    input.scene,
+    input.subject,
+    input.sellingAngle,
+    input.designIntent,
+    input.confirmedCopy?.headline,
+    input.confirmedCopy?.subheadline,
+    ...(input.confirmedCopy?.sellingPoints ?? []),
+  ]
+    .map(readString)
+    .join(" ");
+}
+
+function requestsVisibleLogo(input: EcommerceGenerationRequest) {
+  return /(?:展示|露出|显示|加入|带有|有|使用|突出).{0,12}(?:logo|Logo|LOGO|品牌标识|品牌标志|商标|品牌字样|品牌识别)|(?:visible|show|display|use|include|with).{0,24}(?:logo|wordmark|brand mark|brand identity)/i.test(
+    getBriefText(input),
+  );
+}
+
+function requestsBrandedAccessoryOrPackaging(input: EcommerceGenerationRequest) {
+  return /(?:品牌|logo|Logo|LOGO|商标).{0,16}(?:琴包|琴盒|包|盒|包装|外箱|case|bag|packaging)|(?:琴包|琴盒|包|盒|包装|外箱|case|bag|packaging).{0,16}(?:品牌|logo|Logo|LOGO|商标|branded)/i.test(
+    getBriefText(input),
+  );
+}
+
 function roleFromCandidate(candidate: ReferenceImageCandidate) {
   const directRole = normalizeReferenceImageRole(candidate.type);
 
@@ -249,6 +275,32 @@ function hasVerifiedProductBodyReference(candidates: ReferenceImageCandidate[]) 
       Boolean(role && productBodyRoles.has(role))
     );
   });
+}
+
+function hasRole(references: ReferenceImage[], role: string) {
+  return references.some((item) => normalizeReferenceImageRole(item.type) === role);
+}
+
+function findReferenceByRoles(
+  candidates: ReferenceImageCandidate[],
+  roles: string[],
+) {
+  return candidates.find((candidate) => {
+    const role = roleFromCandidate(candidate);
+
+    return Boolean(candidate.url && candidate.source !== "AI" && role && roles.includes(role));
+  }) || null;
+}
+
+function ensureSelectedReference(
+  selected: ReferenceImage[],
+  reference: ReferenceImage | null,
+) {
+  if (!reference || selected.some((item) => item.id === reference.id)) {
+    return selected;
+  }
+
+  return [...selected, reference];
 }
 
 function toReferenceCandidate(media: Awaited<ReturnType<typeof mediaService.getAll>>[number]) {
@@ -348,6 +400,11 @@ function buildDesignIntent(input: {
       : "",
     readString(input.request.promotion?.verifiedOffer)
       ? `已验证促销事实：${readString(input.request.promotion?.verifiedOffer)}`
+      : "",
+    "Logo 不可自行生成或按文字臆造；只有选中真实 brand_logo 参考图时才允许出现可见 Logo。",
+    "若没有真实 Logo 参考图，画面必须保持无 Logo、无品牌字样、无伪造商标。",
+    requestsBrandedAccessoryOrPackaging(input.request)
+      ? "带品牌的琴包、琴盒或包装必须使用已验证配件/包装参考图；没有对应参考图时保持无品牌或不展示该品牌包装细节。"
       : "",
     input.brandLogoMode === "required" ? "必须展示品牌 Logo，并使用已验证 Logo 参考图。" : "",
     input.brandLogoMode === "forbidden" ? "不要展示 Logo、品牌字样或品牌标识。" : "",
@@ -536,7 +593,7 @@ async function resolvePlan(
   const imageType = request.imageType as ImageType;
   const imageCount = readImageCount(request.imageCount);
   const theme = readString(request.theme) || "产品图";
-  const brandLogoMode = normalizeLogoMode(request.brandLogoMode);
+  const requestedBrandLogoMode = normalizeLogoMode(request.brandLogoMode);
   const brand = await brandService.getById(validation.product.brandId);
   const productFacts = normalizeProductFacts({
     ...validation.product,
@@ -557,7 +614,7 @@ async function resolvePlan(
 
   let candidates = [...candidateMap.values()];
 
-  if (brandLogoMode === "forbidden") {
+  if (requestedBrandLogoMode === "forbidden") {
     candidates = candidates.filter((candidate) => roleFromCandidate(candidate) !== "brand_logo");
   }
 
@@ -571,16 +628,36 @@ async function resolvePlan(
     theme,
     visualRule,
   });
-  const selected = [...selection.images];
+  const logoReference = findBrandLogoReferenceImage(candidates);
+  const shouldShowBranding =
+    requestedBrandLogoMode === "required" ||
+    requestsVisibleLogo(request) ||
+    requestsBrandedAccessoryOrPackaging(request);
+  let brandLogoMode: BrandLogoMode = requestedBrandLogoMode;
+  let selected = [...selection.images];
 
-  if (brandLogoMode === "required" && !selected.some((item) => roleFromCandidate(item) === "brand_logo")) {
-    const logo = findBrandLogoReferenceImage(candidates);
-
-    if (!logo) {
+  if (requestedBrandLogoMode === "required" && !hasRole(selected, "brand_logo")) {
+    if (!logoReference) {
       return buildNeedsInput(["brandLogoReference"]);
     }
 
-    selected.push(logo);
+    selected = ensureSelectedReference(selected, logoReference);
+  }
+
+  if (requestedBrandLogoMode === "auto" && shouldShowBranding) {
+    if (logoReference) {
+      brandLogoMode = "required";
+      selected = ensureSelectedReference(selected, logoReference);
+    } else {
+      brandLogoMode = "forbidden";
+    }
+  }
+
+  if (requestsBrandedAccessoryOrPackaging(request)) {
+    selected = ensureSelectedReference(
+      selected,
+      findReferenceByRoles(candidates, ["accessories", "packaging"]),
+    );
   }
 
   if (selected.length === 0 || selected.length < selection.requiredCount) {
@@ -615,7 +692,7 @@ async function resolvePlan(
     const copyResult = await generateWorkspaceImageCopyCandidates({
       generationContext: baseContext,
       marketingPositioningOverride: request.sellingAngle,
-      promptModel: readString(request.textModel) || "gpt-5.6-terra",
+      promptModel: readString(request.textModel) || defaultModelConfig.promptModel,
     });
     const selectedCopy = selectBestCopyCandidate(copyResult.candidates);
 
@@ -640,7 +717,7 @@ async function resolvePlan(
     ? (
         await generateWorkspacePromptCandidates({
           generationContext,
-          promptModels: [readString(request.textModel) || "gpt-5.6-terra"],
+          promptModels: [readString(request.textModel) || defaultModelConfig.promptModel],
         })
       )[0]
     : undefined;
@@ -681,9 +758,9 @@ async function resolvePlan(
     generationContext,
     generationGroupId,
     models: {
-      actualTextModel: prompt?.promptModel || readString(request.textModel) || "gpt-5.6-terra",
+      actualTextModel: prompt?.promptModel || readString(request.textModel) || defaultModelConfig.promptModel,
       requestedImageModel: readString(request.imageModel) || defaultModelConfig.imageModel,
-      requestedTextModel: readString(request.textModel) || "gpt-5.6-terra",
+      requestedTextModel: readString(request.textModel) || defaultModelConfig.promptModel,
     },
     plan: resolvedPlan,
     prompt,
@@ -859,7 +936,7 @@ async function runSingleEcommerceImageGeneration(request: EcommerceGenerationReq
         fallbackReason: resolved.prompt.fallbackReason,
         promptModel: resolved.prompt.promptModel,
         promptModelLabel: resolved.prompt.promptModelLabel,
-        requestedPromptModel: readString(request.textModel) || "gpt-5.6-terra",
+        requestedPromptModel: readString(request.textModel) || defaultModelConfig.promptModel,
         source: resolved.prompt.source === "model" ? "llm" : "builder",
         validation: resolved.prompt.promptValidation,
       },

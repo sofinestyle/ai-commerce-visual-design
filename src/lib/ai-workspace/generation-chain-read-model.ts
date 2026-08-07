@@ -46,6 +46,7 @@ export type GenerationChainImageNode = {
   imageFileStatus: "available" | "missing" | "unchecked";
   parentImageId: string | null;
   editIntent: string;
+  revisionMode: string | null;
   metadataSummary: GenerationChainMetadataSummary;
   createdAt: string;
   updatedAt: string;
@@ -131,6 +132,7 @@ export function readEditMetadata(styleSignals: unknown) {
     return {
       editIntent: "",
       parentImageId: null,
+      revisionMode: null,
     };
   }
 
@@ -147,6 +149,7 @@ export function readEditMetadata(styleSignals: unknown) {
   return {
     editIntent,
     parentImageId,
+    revisionMode: readString(styleSignals.editMetadata.revisionMode),
   };
 }
 
@@ -175,6 +178,7 @@ export function buildGenerationChainImageNode(
     imageFileStatus: asset.imageFileStatus ?? "unchecked",
     parentImageId: editMetadata.parentImageId,
     editIntent: editMetadata.editIntent,
+    revisionMode: editMetadata.revisionMode,
     metadataSummary: readGenerationMetadataSummary(asset),
     createdAt: toIsoString(asset.createdAt),
     updatedAt: toIsoString(asset.updatedAt),

@@ -10,45 +10,24 @@ Convert the user's short request into JSON-like working fields:
 - imageType: main image / lifestyle / detail / kit / back pattern / white background
 - scenes: ordered list, one per intended image when possible
 - subject: person/product/action
-- textModel: requested prompt/copy model, default to `gpt-5.6-terra` if absent
-- imageModel: requested image model, default to `gpt-image-2-03` if absent
+- textModel: requested prompt/copy model, or the platform's current configured default if absent
+- imageModel: requested image model, or the platform's current configured default if absent
 - language: infer from platform; Temu product image copy should usually be English unless the user asks otherwise
 
 Do not ask for missing creative details if they can be inferred from platform and product context. Do ask for missing required commercial/product facts.
 
 ## Required Facts Gate
 
-Before design planning, copy generation, prompt generation, or image generation, validate the brief:
+Run the Required Facts Gate in `product-facts.md` before planning, copy generation, prompt generation, or image generation.
 
-1. Required for any product-specific ecommerce image:
-   - exact SKU/product number
-   - existing product record or repository data for that SKU
-   - at least one verified usable product reference image for that SKU
-2. Required when marketplace rules affect layout, language, logo, background, or copy:
-   - platform/marketplace, unless explicitly inferable from the request
-3. Required for claim-sensitive copy:
-   - verified promotion, discount, limited-time offer, price, ranking, certification, guarantee, or performance evidence before using those claims
-4. Required for generation:
-   - image count and image role/type; if absent, ask rather than silently choosing a marketplace role that changes compliance
-
-If any required item is missing, stop before design or generation and return `needs_input` with the missing fields and concise questions. Do not fill missing product facts with assumptions, another SKU, generic product assets, or invented offers.
-
-Creative defaults are allowed only after required facts pass:
-
-- light/commercial lighting
-- clean composition
-- shopper-facing copy tone
-- neutral or platform-appropriate background
-- inferred copy language from platform
+If any required item is missing, stop and return `needs_input` with concise questions. Do not fill missing product facts with assumptions, another SKU, generic product assets, or invented offers.
 
 ## Model Policy
 
 Use this policy before copy generation or image generation:
 
 1. If the user explicitly names a text model or image model, use the named model.
-2. If the user does not mention models, use:
-   - text model: `gpt-5.6-terra`
-   - image model: `gpt-image-2-03`
+2. If the user does not mention models, use the platform's current configured default text and image models from the model configuration single source of truth.
 3. If the user asks for model choices, discover current supported models from the project/platform before generating.
    - Prefer local APIs such as `/api/ai/models` when a dev server and auth are available.
    - Otherwise inspect local model config files such as `data/custom-models.json`, `data/model-capability-results.json`, `src/lib/modelDefaults.ts`, and provider capability lists.
@@ -67,6 +46,8 @@ Use the ecommerce visual design platform's official generation chain for normal 
 4. Use platform prompt-generation API/workflow for image prompts when available.
 5. Use platform image-generation API/workflow for final images.
 6. Verify generated media and generation chain/history records exist when the platform supports them.
+
+Logo and branded packaging rule: visible logo must come from a verified `brand_logo` asset. If the platform cannot find a logo file, default to no visible logo/brand text; never let the model generate a logo from the brand name. Branded case/bag/packaging scenes must also include the relevant verified accessory or packaging reference, otherwise keep those details generic or omit them.
 
 The unified endpoint request should include:
 
@@ -102,7 +83,8 @@ In new Codex conversations, execute through the unified endpoint as a state mach
    - `needs_input`: ask only the returned questions; do not continue planning or generating.
    - `planned`: present `designPlan.items` as the design方案 table and wait for confirmation. Treat AI copy in the table as copy candidates until the user confirms or edits it.
    - `succeeded`: return output links, actual models, platform history/generation-chain visibility, and QA summary.
-   - `failed` or thrown error: report the exact platform failure and stop unless the user approves a retry or fallback.
+   - `partial`: report succeeded and failed batch items separately, including each failed item error.
+   - thrown error or failed batch item: report the exact platform failure and stop unless the user approves a retry or fallback.
 5. Confirmation rules:
    - If the plan row includes AI-generated copy candidates, ask the user to confirm, edit, or reject the copy before treating it as final visible copy.
    - If the user confirms exact visible copy, generate that row with `copyMode: "user_confirmed"` and `confirmedCopy`.
@@ -112,34 +94,11 @@ In new Codex conversations, execute through the unified endpoint as a state mach
 
 Do not write temporary platform-chain scripts for normal tasks once this endpoint/service is available.
 
-Example model-choice prompt:
-
-```text
-当前可用文字模型：
-1. gpt-5.6-terra（默认）
-2. gpt-5.6-sol
-3. gpt-5.5
-
-当前可用生图模型：
-1. gpt-image-2-03（默认）
-2. gpt-image-2
-3. gemini-3-pro-image
-
-请回复：文字模型序号 + 生图模型序号，例如 `1, 1`。
-```
+When the user asks to choose models, dynamically list the currently supported text and image models from the platform or local model configuration. Do not hard-code model IDs in the prompt; present numbered options and ask the user to reply with text-model number and image-model number.
 
 ## Product Context
 
-Read product facts before copy or image prompts:
-
-- For Prisma/SQLite projects, inspect the Product and Media tables for the SKU.
-- Read tags for material, color, size, accessories, packaging, supplier notes, and selling points.
-- Resolve brand name and brand assets.
-- Find previous outputs for the same SKU to learn preferred visual direction, but treat AI outputs as style references, not product-fact references.
-
-If a fact is absent, leave it absent. Do not invent.
-
-If the SKU cannot be found, product data is empty, or no verified product image can be selected, stop and ask the user to correct the SKU or add product references.
+Use `product-facts.md` for fact sources, missing-fact handling, claim-sensitive facts, and conflict handling. Use `reference-selection.md` for exact-SKU reference priority and style-memory rules.
 
 ## Brief Intent Examples
 
@@ -149,7 +108,7 @@ Handle compact user instructions as follows:
 - `制作1张产品图，产品编号 W102-BR，文案突出限时促销。` -> ask for platform and verified promotion details before design; do not invent limited-time copy.
 - `制作1张天猫使用场景图，产品编号 W102-BR，不要有logo，在室内拉琴。` -> enough if SKU/references exist; set logo mode to forbidden.
 - `制作3张主图，天猫使用，产品编号W102-BR，请从不同角度帮我分析如何设计。` -> use `plan_only` first; do not generate until the user confirms.
-- `制作2张电商图片，要有logo。` -> ask for SKU/product number and platform/image role before design.
+- `制作2张电商图片，要有logo。` -> ask for SKU/product number, platform/image role, and ensure a verified `brand_logo` asset exists before design; if no logo file exists, ask whether to continue without visible logo.
 
 ## Design Intent
 
@@ -170,7 +129,7 @@ Plan-only flow:
 
 1. Codex/platform reads product facts, platform rules, and reference image information.
 2. Codex structures the design scheme: subject, scene, selling angle, reference roles, logo mode, and constraints.
-3. If exact visible copy is absent, call the platform AI copy model to generate copy candidates and show them for user confirmation.
+3. If exact visible copy is absent and visible copy is allowed/useful, call the platform AI copy model to generate copy candidates and show them for user confirmation.
 4. If exact visible copy is already provided, use it directly in the plan.
 5. Do not generate the final five-section image prompt during plan-only. Generate final prompts only after the user confirms the plan/copy and asks to generate images.
 
@@ -203,7 +162,7 @@ Before image prompt generation, decide whether copy is user-approved or AI-gener
    - Codex or the user previously provided specific headline/subheadline/selling-point wording in the design plan or instruction.
    - The user confirms that plan/copy, or explicitly says to use that copy.
 2. Do not treat a generic approval of subject, scene, image count, or selling angle as approval of exact visible wording.
-3. If exact visible copy is absent or not confirmed, call the platform copy-generation chain to generate exactly 3 candidates and select the best one.
+3. If exact visible copy is absent or not confirmed, and visible copy is allowed by platform rules, useful for the image role, and `copyMode` is not `none`, call the platform copy-generation chain to generate exactly 3 candidates and select the best one.
 4. Pass the copy source into the prompt-generation request when possible:
    - `source: "user_confirmed"` for confirmed plan/user copy.
    - `source: "ai_candidate"` plus candidate id/model/score for platform-generated copy.
@@ -214,14 +173,19 @@ Use this loop:
 
 1. Run the Required Facts Gate.
 2. Build facts and references.
-3. Resolve visible copy using the Visible Copy Decision rules above.
-4. If AI copy is needed, call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent, then validate and select the best copy candidate.
-5. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
-6. Call the platform image-generation chain to generate the image.
-7. Confirm generated media and generation chain/history records were created when the platform supports them.
-8. Inspect result.
-9. Retry through the platform chain if the result fails a critical check and time/model budget allows.
-10. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
+3. Resolve logo and branded packaging references. If visible logo is requested, select the real `brand_logo`; if absent in `auto`, force no visible logo; if absent in `required`, ask for the missing asset or approval to continue without logo. If branded case/bag/packaging is requested, select the verified accessory/packaging reference or keep the item unbranded.
+4. Resolve visible copy using the Visible Copy Decision rules above.
+5. If AI copy is needed and allowed, call the platform copy-generation chain to generate exactly 3 visible-copy candidates from product facts and design intent, then validate and select the best copy candidate. If copy is forbidden, not useful for the image role, or `copyMode` is `none`, pass `visibleCopy.enabled: false`.
+6. Call the platform prompt-generation chain to build the image prompt from design intent, references, and the selected copy.
+7. Call the platform image-generation chain to generate the image.
+8. Confirm generated media and generation chain/history records were created when the platform supports them.
+9. Inspect result.
+10. Retry through the platform chain according to the retry budget in `quality-review.md`.
+11. Create a standalone report only when the user explicitly asks for a report, detailed breakdown, prompt trace, or execution record.
+
+## Local Revision / Second-Pass Modification
+
+For local edits, second-pass modifications, or deciding between edit and redesign, follow `local-revision.md`.
 
 ## Quality Feedback Loop
 
@@ -229,10 +193,15 @@ When generated images reveal repeatable defects, route the fix back into the pla
 
 - packaging hallucination -> platform packaging-reference selection and prompt rules
 - accessory mismatch or missing real accessory photos -> platform accessory-reference selection and verified-accessory constraints
+- invented logo, pseudo-logo, or wrong brand mark -> platform logo-reference selection, prompt rules, and logo-match QA
 - product scale/proportion errors -> platform prompt rules and QA checks for size/proportion
 - weak visible copy -> platform copy-generation prompt and copy-quality checks
 
 Use one-off Codex prompt patches only as a temporary fallback, not as the primary quality solution.
+
+## Failure Recovery
+
+For text-model filtering, weak copy retry, image-provider filtering, platform-chain failure, or bypassing the platform chain, follow `failure-recovery.md`.
 
 ## Optional Reports
 

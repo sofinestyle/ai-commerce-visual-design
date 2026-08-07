@@ -1,0 +1,22 @@
+{
+  "metrics": {
+    "skillSuccessRate": "percentage of cases matching expected behavior",
+    "requiredFactsAccuracy": "needs_input is returned before planning/generation when required facts are missing",
+    "platformComplianceRate": "platform conflicts are caught and routed correctly",
+    "referenceAccuracyRate": "exact-SKU verified references are required for product-specific images",
+    "copyDecisionAccuracy": "copyMode and confirmedCopy handling match policy",
+    "chainUsageRate": "normal generation uses the unified platform chain",
+    "retryPolicyCompliance": "automatic retry stays within documented budgets"
+  },
+  "passCriteria": {
+    "minimumSkillSuccessRate": 0.9,
+    "requiredFactsAccuracy": 1,
+    "platformComplianceRate": 1,
+    "chainUsageRate": 1
+  },
+  "manualReviewNotes": [
+    "These evals are contract cases for Codex skill behavior, not image aesthetic scoring.",
+    "Cases that depend on local product fixtures may need SKU substitutions in a different workspace.",
+    "Use generated artifacts, endpoint payloads, and final responses as evidence."
+  ]
+}

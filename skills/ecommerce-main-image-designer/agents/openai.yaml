@@ -1,4 +1,4 @@
 interface:
   display_name: "Ecommerce Main Image Designer"
-  short_description: "Execute ecommerce main-image design tasks from short prompts."
+  short_description: "Create ecommerce main images from short prompts."
   default_prompt: "Use $ecommerce-main-image-designer to turn a short ecommerce image request into product facts, references, copy, prompts, image generation, and QA."

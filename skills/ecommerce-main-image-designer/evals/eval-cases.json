@@ -1,0 +1,144 @@
+[
+  {
+    "id": "temu-lifestyle-generate",
+    "prompt": "制作2张Temu主图使用场景图，产品编号 L301-GN。场景：公园、音乐厅。主体：学生拉小提琴。",
+    "expected": {
+      "mode": "generate",
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "copy.md", "copy-candidate-protocol.md", "quality-review.md"],
+      "request": {
+        "platform": "TEMU",
+        "sku": "L301-GN",
+        "imageType": "主图",
+        "theme": "使用场景图",
+        "imageCount": 2,
+        "copyMode": "auto"
+      },
+      "behavior": "generate through unified platform chain after facts and references pass"
+    }
+  },
+  {
+    "id": "amazon-first-image-no-copy-conflict",
+    "prompt": "制作1张 Amazon 首图，产品编号 W102-BR，加5条卖点文案。",
+    "expected": {
+      "mode": "generate_or_needs_input",
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "copy.md"],
+      "request": {
+        "platform": "Amazon",
+        "sku": "W102-BR",
+        "imageType": "主图",
+        "theme": "首图",
+        "copyMode": "none"
+      },
+      "behavior": "platform rules override requested visible copy; explain conflict and do not add marketing copy to Amazon first image"
+    }
+  },
+  {
+    "id": "missing-sku-needs-input",
+    "prompt": "帮我做2张TEMU主图，场景是户外练琴。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["sku"],
+      "requiredReferences": ["workflow.md", "product-facts.md"],
+      "behavior": "ask for exact SKU before planning or generation"
+    }
+  },
+  {
+    "id": "unknown-sku-needs-input",
+    "prompt": "制作1张天猫使用场景图，产品编号 UNKNOWN-001，在室内拉琴。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["product"],
+      "requiredReferences": ["workflow.md", "product-facts.md"],
+      "behavior": "ask user to correct SKU or add product data"
+    }
+  },
+  {
+    "id": "missing-reference-needs-input",
+    "prompt": "制作1张TEMU主图，产品编号 SKU-WITH-NO-PHOTO。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["verifiedProductReference"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "do not generate product-specific image without verified product-body reference"
+    }
+  },
+  {
+    "id": "promotion-without-facts",
+    "prompt": "制作1张产品图，产品编号 W102-BR，文案突出限时促销。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["platform", "promotionFacts"],
+      "requiredReferences": ["workflow.md", "product-facts.md"],
+      "behavior": "ask for platform and verified promotion facts or remove promotion claim"
+    }
+  },
+  {
+    "id": "plan-only-different-angles",
+    "prompt": "制作3张主图，天猫使用，产品编号 W102-BR，请从不同角度帮我分析如何设计。",
+    "expected": {
+      "mode": "plan_only",
+      "status": "planned",
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "copy.md", "copy-candidate-protocol.md"],
+      "behavior": "return designPlan.items and wait for confirmation; do not generate final image prompts"
+    }
+  },
+  {
+    "id": "confirmed-plan-items-batch",
+    "prompt": "确认以上3个方案，按方案生成。",
+    "expected": {
+      "mode": "generate",
+      "request": {
+        "confirmedPlanItems": "present",
+        "options.generationConcurrency": 2
+      },
+      "requiredReferences": ["workflow.md", "quality-review.md"],
+      "behavior": "send confirmedPlanItems in one endpoint request; report partial if any row fails"
+    }
+  },
+  {
+    "id": "exact-copy-confirmed",
+    "prompt": "使用这句文案生成：Practice With Confidence / Everything in One Set。",
+    "expected": {
+      "request": {
+        "copyMode": "user_confirmed",
+        "confirmedCopy": "present"
+      },
+      "requiredReferences": ["workflow.md", "copy.md", "copy-candidate-protocol.md"],
+      "behavior": "use exact confirmed copy directly; do not generate new AI copy candidates"
+    }
+  },
+  {
+    "id": "copy-forbidden-no-copy",
+    "prompt": "制作1张Amazon首图，产品编号 W102-BR，不要文案。",
+    "expected": {
+      "request": {
+        "platform": "Amazon",
+        "copyMode": "none"
+      },
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "pass visibleCopy.enabled false and skip copy generation"
+    }
+  },
+  {
+    "id": "platform-chain-failure",
+    "prompt": "制作1张TEMU主图，产品编号 W102-BR。",
+    "expected": {
+      "requiredReferences": ["workflow.md", "failure-recovery.md"],
+      "behavior": "if unified platform chain fails, report exact failure and stop unless user approves retry or fallback"
+    }
+  },
+  {
+    "id": "local-edit-logo",
+    "prompt": "把上一张图里的logo换成正确logo，其他都不要变。",
+    "expected": {
+      "endpoint": "/api/ai-workspace/edit-image",
+      "requiredReferences": ["workflow.md", "local-revision.md", "quality-review.md"],
+      "request": {
+        "revisionMode": "local_edit",
+        "preserveExistingText": true,
+        "parentImageId": "present"
+      },
+      "behavior": "use local edit, preserve composition, and confirm parent-image linkage"
+    }
+  }
+]

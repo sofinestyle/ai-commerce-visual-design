@@ -570,6 +570,7 @@ async function executeGenerationRequest(
     promptValidation: promptObservability.validation,
     productFacts: generationRequest.productFacts,
     referenceImageCount: referenceImages.length,
+    referenceImages,
     requestedImageCount: imageCount,
     requestedImageModel: imageModel || null,
     theme,

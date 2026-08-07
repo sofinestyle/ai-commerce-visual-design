@@ -337,5 +337,6 @@ export type GenerationResult = {
     editSessionId: string;
     generatedTime: string;
     parentImageId?: string | null;
+    revisionMode?: "local_edit";
   };
 };

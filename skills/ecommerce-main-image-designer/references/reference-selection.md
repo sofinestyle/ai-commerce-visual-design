@@ -20,6 +20,14 @@ If no verified product-body reference exists for the requested SKU, stop and ask
 - Back pattern: back, detail, logo.
 - Accessory kit/set: front, accessories, kit/set layout, logo.
 - Lifestyle scene: front and side product references, logo, optionally one prior high-quality lifestyle output as style reference.
+
+## Logo And Branded Packaging Gate
+
+- Do not allow the model to invent, approximate, spell, or redraw a logo from brand text.
+- A visible logo/wordmark/trademark requires a selected verified `brand_logo` image reference.
+- If `brandLogoMode` is `auto` and the brief or plan asks for visible branding, force-select the verified `brand_logo`; if none exists, switch to no visible logo/brand text.
+- If `brandLogoMode` is `required` and no verified `brand_logo` exists, stop and ask for the logo asset or explicit approval to continue without logo.
+- Branded cases, bags, boxes, or packaging require the relevant verified accessory/packaging reference in addition to the true logo. If the reference is missing, keep the item generic/unbranded or omit the branded detail.
 - Detail/craft: detail and back/front references.
 
 ## Selection Heuristics
