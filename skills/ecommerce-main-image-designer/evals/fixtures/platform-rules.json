@@ -19,5 +19,19 @@
     "theme": "使用场景图",
     "copyMode": "auto",
     "logoMode": "auto"
+  },
+  {
+    "platform": "TEMU",
+    "imageType": "主图",
+    "theme": "使用场景图",
+    "copyMode": "auto",
+    "logoMode": "forbidden"
+  },
+  {
+    "platform": "独立站",
+    "imageType": "主图",
+    "theme": "产品图",
+    "copyMode": "auto",
+    "logoMode": "auto"
   }
 ]

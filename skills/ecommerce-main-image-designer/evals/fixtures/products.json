@@ -28,5 +28,25 @@
     "size": "4/4",
     "accessories": "",
     "packaging": ""
+  },
+  {
+    "sku": "AI-LOGO-ONLY",
+    "name": "Violin with only pseudo logo media",
+    "brand": "YorRay",
+    "category": "violin",
+    "color": "brown",
+    "size": "4/4",
+    "accessories": "case, rosin",
+    "packaging": "color box"
+  },
+  {
+    "sku": "PKG-REF-OK",
+    "name": "Violin set with packaging reference",
+    "brand": "YorRay",
+    "category": "violin",
+    "color": "black",
+    "size": "4/4",
+    "accessories": "case, strings, rosin",
+    "packaging": "printed retail box"
   }
 ]

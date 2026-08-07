@@ -19,7 +19,7 @@ The P0 runner:
 
 1. Reads `eval-cases.json`.
 2. Loads fixed fixtures from `fixtures/`.
-3. Builds deterministic contract-level actual results.
+3. Builds deterministic contract-level actual results without calling paid image providers.
 4. Compares `status`, `mode`, `endpoint`, `missingFields`, `request`, and `requiredReferences`.
 5. Writes `reports/latest.json` and `reports/latest.md`.
 6. Returns non-zero exit code when any case fails or pass criteria are not met.
@@ -27,6 +27,8 @@ The P0 runner:
 Do not require actual paid image generation for cases whose expected behavior stops at `needs_input`, `planned`, conflict handling, or fallback reporting.
 
 Generated files in `reports/` are ignored by git.
+
+The current core set includes 25 logic/prompt contract cases covering required facts, platform conflicts, logo/reference safety, copy policy, unified-chain routing, and local-revision routing.
 
 ## Manual Review
 
@@ -42,8 +44,8 @@ For behavior that cannot be proven by the P0 deterministic runner, capture:
 
 ```text
 Skill Eval
-Cases: 12
-Passed: 12
+Cases: 25
+Passed: 25
 Failed: 0
 Skill Success Rate: 100%
 Required Facts Accuracy: 100%

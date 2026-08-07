@@ -78,6 +78,22 @@ function parseCopyMode(prompt, request) {
   return "auto";
 }
 
+function parseLogoMode(prompt) {
+  if (/不要\s*logo|无\s*logo|禁止\s*logo|禁用\s*logo|不展示\s*logo|no\s+logo/i.test(prompt)) {
+    return "forbidden";
+  }
+
+  if (
+    /(?:要|展示|露出|显示|带有|使用|突出|必须).{0,12}(?:logo|Logo|LOGO|品牌标识|品牌标志|商标|品牌字样|品牌识别)|(?:visible|show|display|use|include|with).{0,24}(?:logo|wordmark|brand mark|brand identity)/i.test(
+      prompt,
+    )
+  ) {
+    return "required";
+  }
+
+  return "auto";
+}
+
 function parseEndpoint(prompt) {
   if (/上一张|换成正确logo|其他都不要变|局部|local edit/i.test(prompt)) {
     return "/api/ai-workspace/edit-image";
@@ -105,6 +121,75 @@ function productBodyReferenceExists(mediaItems, sku) {
   );
 }
 
+function hasTrueLogoReference(mediaItems, sku) {
+  return mediaItems.some(
+    (item) =>
+      item.sku === sku &&
+      item.type === "brand_logo" &&
+      item.source !== "AI" &&
+      Boolean(item.url),
+  );
+}
+
+function hasPseudoLogoReference(mediaItems, sku) {
+  return mediaItems.some(
+    (item) => item.sku === sku && item.type === "brand_logo" && item.source === "AI" && Boolean(item.url),
+  );
+}
+
+function hasAccessoryOrPackagingReference(mediaItems, sku) {
+  return mediaItems.some(
+    (item) =>
+      item.sku === sku &&
+      item.source !== "AI" &&
+      ["accessories", "packaging"].includes(item.type) &&
+      Boolean(item.url),
+  );
+}
+
+function selectedReferenceRoles(mediaItems, sku, request) {
+  const roles = mediaItems
+    .filter((item) => item.sku === sku && item.source !== "AI" && Boolean(item.url))
+    .map((item) => item.type);
+
+  if (request.brandLogoMode === "forbidden") {
+    return unique(roles.filter((role) => role !== "brand_logo"));
+  }
+
+  return unique(roles);
+}
+
+function requestsBrandedAccessoryOrPackaging(prompt) {
+  return /(?:品牌|logo|Logo|LOGO|商标).{0,16}(?:琴包|琴盒|包|盒|包装|外箱|case|bag|packaging)|(?:琴包|琴盒|包|盒|包装|外箱|case|bag|packaging).{0,16}(?:品牌|logo|Logo|LOGO|商标|branded)/i.test(
+    prompt,
+  );
+}
+
+function requestsRequiredPackaging(prompt) {
+  return /(?:必须|要求|展示|显示|使用).{0,12}(?:真实包装|包装参考|包装图|packaging reference)|(?:真实包装|包装参考|包装图).{0,12}(?:必须|展示|显示|使用)/i.test(
+    prompt,
+  );
+}
+
+function buildPromptConstraints(prompt, request, mediaItems) {
+  const constraints = [];
+  const logoAvailable = request.sku ? hasTrueLogoReference(mediaItems, request.sku) : false;
+
+  if (request.brandLogoMode === "forbidden" || !logoAvailable) {
+    constraints.push("no_invented_logo");
+  }
+
+  if (request.copyMode === "none") {
+    constraints.push("no_visible_copy");
+  }
+
+  if (requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(mediaItems, request.sku)) {
+    constraints.push("branded_accessory_unbranded_or_omitted");
+  }
+
+  return constraints;
+}
+
 function buildActual(caseItem, fixtures) {
   const prompt = caseItem.prompt;
   const endpoint = parseEndpoint(prompt);
@@ -116,7 +201,9 @@ function buildActual(caseItem, fixtures) {
       request: {
         parentImageId: "present",
         preserveExistingText: true,
-        revisionMode: "local_edit",
+        revisionMode: /换背景|换人物|背景.*人物|人物.*背景|全新背景|整体重做|重新生成|regenerate/i.test(prompt)
+          ? "regenerate"
+          : "local_edit",
       },
       requiredReferences: caseItem.expected.requiredReferences ?? [],
       status: "planned",
@@ -133,6 +220,7 @@ function buildActual(caseItem, fixtures) {
   const mode = /确认以上/.test(prompt) ? "generate" : parseMode(prompt);
 
   request.copyMode = parseCopyMode(prompt, request);
+  request.brandLogoMode = parseLogoMode(prompt);
 
   const platformRule = findPlatformRule(fixtures.platformRules, request);
 
@@ -140,7 +228,7 @@ function buildActual(caseItem, fixtures) {
     request.copyMode = "none";
   }
 
-  if (platformRule?.logoMode) {
+  if (platformRule?.logoMode && request.brandLogoMode === "auto") {
     request.brandLogoMode = platformRule.logoMode;
   }
 
@@ -163,7 +251,7 @@ function buildActual(caseItem, fixtures) {
     missingFields.push("platform");
   }
 
-  if (/限时|促销|折扣|limited|discount|sale/i.test(prompt)) {
+  if (/限时|促销|折扣|limited|discount|sale/i.test(prompt) && !/已验证|verified/i.test(prompt)) {
     missingFields.push("promotionFacts");
   }
 
@@ -179,6 +267,26 @@ function buildActual(caseItem, fixtures) {
     missingFields.push("verifiedProductReference");
   }
 
+  if (product && request.brandLogoMode === "required" && !hasTrueLogoReference(fixtures.media, request.sku)) {
+    missingFields.push("brandLogoReference");
+  }
+
+  if (product && request.brandLogoMode === "auto" && /品牌识别|品牌视觉|brand identity/i.test(prompt)) {
+    request.brandLogoMode = hasTrueLogoReference(fixtures.media, request.sku) ? "required" : "forbidden";
+  }
+
+  if (product && requestsRequiredPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku)) {
+    missingFields.push("packagingReference");
+  }
+
+  if (product && requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku)) {
+    request.brandedAccessoryMode = "generic_unbranded_or_omit";
+  }
+
+  if (product && hasPseudoLogoReference(fixtures.media, request.sku) && !hasTrueLogoReference(fixtures.media, request.sku)) {
+    request.logoReferenceSource = "pseudo_logo_excluded";
+  }
+
   const status = missingFields.length > 0 ? "needs_input" : mode === "plan_only" ? "planned" : "ready";
 
   return {
@@ -186,8 +294,10 @@ function buildActual(caseItem, fixtures) {
     mode,
     missingFields: unique(missingFields),
     providerBypass: false,
+    promptConstraints: buildPromptConstraints(prompt, request, fixtures.media),
     request,
     requiredReferences: caseItem.expected.requiredReferences ?? [],
+    selectedReferenceRoles: request.sku ? selectedReferenceRoles(fixtures.media, request.sku, request) : [],
     status,
   };
 }
@@ -230,6 +340,24 @@ function compareCase(caseItem, actual) {
     );
   }
 
+  if (expected.selectedReferenceRoles) {
+    add(
+      "selectedReferenceRoles",
+      includesAll(actual.selectedReferenceRoles, expected.selectedReferenceRoles),
+      expected.selectedReferenceRoles,
+      actual.selectedReferenceRoles ?? [],
+    );
+  }
+
+  if (expected.promptConstraints) {
+    add(
+      "promptConstraints",
+      includesAll(actual.promptConstraints, expected.promptConstraints),
+      expected.promptConstraints,
+      actual.promptConstraints ?? [],
+    );
+  }
+
   if (expected.requiredReferences) {
     add(
       "requiredReferences",
@@ -256,7 +384,7 @@ function compareCase(caseItem, actual) {
 function categoryForCase(id) {
   if (/missing|unknown|promotion/.test(id)) return "requiredFacts";
   if (/amazon|platform|copy-forbidden/.test(id)) return "platformCompliance";
-  if (/reference|logo/.test(id)) return "referenceAccuracy";
+  if (/reference|logo|packaging|accessory|branded-case/.test(id)) return "referenceAccuracy";
   if (/copy/.test(id)) return "copyDecision";
   if (/chain|batch|confirmed-plan/.test(id)) return "chainUsage";
   return "general";

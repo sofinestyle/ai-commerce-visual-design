@@ -30,5 +30,37 @@
     "source": "brand_asset",
     "status": "final",
     "url": "/fixtures/yor-ray-logo.png"
+  },
+  {
+    "id": "media-ai-logo-front",
+    "sku": "AI-LOGO-ONLY",
+    "type": "front",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/ai-logo-front.jpg"
+  },
+  {
+    "id": "media-ai-logo-pseudo",
+    "sku": "AI-LOGO-ONLY",
+    "type": "brand_logo",
+    "source": "AI",
+    "status": "final",
+    "url": "/fixtures/pseudo-logo.png"
+  },
+  {
+    "id": "media-pkg-front",
+    "sku": "PKG-REF-OK",
+    "type": "front",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/pkg-front.jpg"
+  },
+  {
+    "id": "media-pkg-packaging",
+    "sku": "PKG-REF-OK",
+    "type": "packaging",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/pkg-packaging.jpg"
   }
 ]

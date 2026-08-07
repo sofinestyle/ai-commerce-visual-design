@@ -140,5 +140,175 @@
       },
       "behavior": "use local edit, preserve composition, and confirm parent-image linkage"
     }
+  },
+  {
+    "id": "logo-required-without-asset",
+    "prompt": "制作1张独立站产品图，产品编号 L301-GN，必须展示品牌Logo。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["brandLogoReference"],
+      "request": {
+        "platform": "独立站",
+        "sku": "L301-GN",
+        "brandLogoMode": "required"
+      },
+      "promptConstraints": ["no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "visible logo is blocked until a true brand_logo asset exists; do not synthesize logo from brand name"
+    }
+  },
+  {
+    "id": "logo-auto-without-asset-defaults-forbidden",
+    "prompt": "制作1张独立站产品图，产品编号 L301-GN，保持品牌视觉氛围。",
+    "expected": {
+      "request": {
+        "brandLogoMode": "forbidden"
+      },
+      "promptConstraints": ["no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "auto branding without a true logo asset defaults to no visible logo or brand text"
+    }
+  },
+  {
+    "id": "ai-pseudo-logo-is-not-valid-logo-asset",
+    "prompt": "制作1张独立站产品图，产品编号 AI-LOGO-ONLY，要求展示Logo。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["brandLogoReference"],
+      "request": {
+        "sku": "AI-LOGO-ONLY",
+        "brandLogoMode": "required",
+        "logoReferenceSource": "pseudo_logo_excluded"
+      },
+      "promptConstraints": ["no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "AI-generated pseudo logo media must not satisfy the true brand_logo requirement"
+    }
+  },
+  {
+    "id": "logo-required-with-true-asset",
+    "prompt": "制作1张独立站产品图，产品编号 W102-BR，要求展示Logo。",
+    "expected": {
+      "request": {
+        "platform": "独立站",
+        "sku": "W102-BR",
+        "brandLogoMode": "required"
+      },
+      "selectedReferenceRoles": ["front", "brand_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "visible logo is allowed only because a true brand_logo asset is selected"
+    }
+  },
+  {
+    "id": "branded-case-without-accessory-reference",
+    "prompt": "制作1张独立站产品图，产品编号 W102-BR，展示带品牌Logo的琴包。",
+    "expected": {
+      "request": {
+        "brandLogoMode": "required",
+        "brandedAccessoryMode": "generic_unbranded_or_omit"
+      },
+      "promptConstraints": ["branded_accessory_unbranded_or_omitted"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "branded case/bag needs verified accessory or packaging reference; otherwise keep it unbranded or omit branded detail"
+    }
+  },
+  {
+    "id": "packaging-required-without-reference",
+    "prompt": "制作1张天猫产品图，产品编号 W102-BR，必须展示真实包装参考。",
+    "expected": {
+      "status": "needs_input",
+      "missingFields": ["packagingReference"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "explicit real packaging display requires a verified packaging reference"
+    }
+  },
+  {
+    "id": "packaging-reference-present",
+    "prompt": "制作1张天猫产品图，产品编号 PKG-REF-OK，必须展示真实包装参考。",
+    "expected": {
+      "request": {
+        "sku": "PKG-REF-OK"
+      },
+      "selectedReferenceRoles": ["front", "packaging"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "real packaging display is allowed when a verified packaging reference exists"
+    }
+  },
+  {
+    "id": "temu-lifestyle-logo-forbidden",
+    "prompt": "制作1张TEMU主图使用场景图，产品编号 L301-GN，不要logo。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "theme": "使用场景图",
+        "brandLogoMode": "forbidden"
+      },
+      "promptConstraints": ["no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md"],
+      "behavior": "TEMU lifestyle request with no-logo instruction must not select or generate visible logo"
+    }
+  },
+  {
+    "id": "amazon-first-image-default-no-logo-copy",
+    "prompt": "制作1张Amazon首图，产品编号 W102-BR。",
+    "expected": {
+      "request": {
+        "platform": "Amazon",
+        "theme": "首图",
+        "copyMode": "none",
+        "brandLogoMode": "forbidden"
+      },
+      "promptConstraints": ["no_visible_copy", "no_invented_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "copy.md"],
+      "behavior": "Amazon first image defaults to no marketing copy and no added logo"
+    }
+  },
+  {
+    "id": "copy-auto-candidates-for-product-image",
+    "prompt": "制作1张TEMU产品图，产品编号 W102-BR，文案突出套装便利。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "theme": "产品图",
+        "copyMode": "auto"
+      },
+      "requiredReferences": ["workflow.md", "copy.md", "copy-candidate-protocol.md"],
+      "behavior": "use platform copy-generation workflow to produce candidates when copy is useful and allowed"
+    }
+  },
+  {
+    "id": "promotion-with-verified-facts",
+    "prompt": "制作1张TEMU产品图，产品编号 W102-BR，文案突出已验证促销：返校季活动。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "copyMode": "auto"
+      },
+      "missingFields": [],
+      "requiredReferences": ["workflow.md", "product-facts.md", "copy.md"],
+      "behavior": "verified promotion facts may be used without asking for additional promotion evidence"
+    }
+  },
+  {
+    "id": "provider-bypass-forbidden",
+    "prompt": "制作1张TEMU主图，产品编号 W102-BR，不要走平台链，直接调图片模型。",
+    "expected": {
+      "endpoint": "/api/ai-workspace/ecommerce-generate",
+      "requiredReferences": ["workflow.md", "failure-recovery.md"],
+      "behavior": "normal generation must avoid provider bypass and keep using the unified platform chain"
+    }
+  },
+  {
+    "id": "local-edit-change-background-routes-regenerate",
+    "prompt": "把上一张图换成全新背景和人物，产品不变。",
+    "expected": {
+      "endpoint": "/api/ai-workspace/edit-image",
+      "request": {
+        "revisionMode": "regenerate",
+        "parentImageId": "present"
+      },
+      "requiredReferences": ["workflow.md", "local-revision.md", "quality-review.md"],
+      "behavior": "large background/person replacement should route away from narrow local edit into regeneration"
+    }
   }
 ]
