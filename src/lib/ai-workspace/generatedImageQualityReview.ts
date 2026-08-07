@@ -21,8 +21,10 @@ type ReviewProductFacts = {
 
 type ReviewInput = {
   actualImageModel?: string | null;
+  attempt?: number;
   imageType?: string;
   images: GeneratedImage[];
+  maxAttempts?: number;
   promptValidation?: PromptValidationResult | null;
   productFacts?: ReviewProductFacts;
   referenceImageCount: number;
@@ -34,6 +36,10 @@ type ReviewInput = {
 };
 
 type ReviewCheck = GeneratedImageQualityReview["checks"][number];
+type QualityDecision = Pick<
+  GeneratedImageQualityReview,
+  "attempt" | "decision" | "decisionReasons" | "failureTypes" | "maxAttempts" | "retryRecommended"
+>;
 
 function makeCheck(input: ReviewCheck): ReviewCheck {
   return input;
@@ -83,6 +89,150 @@ function summarizeStatus(status: GeneratedImageQualityReview["status"]) {
   }
 
   return "本地基础检查发现关键风险，不建议直接使用。";
+}
+
+function readAttempt(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(1, Math.floor(value))
+    : 1;
+}
+
+function failureTypeForCheck(check: ReviewCheck) {
+  const map: Record<string, string> = {
+    "accessory-boundary": "ACCESSORY_BOUNDARY_RISK",
+    "brand-logo-reference": "LOGO_REFERENCE_MISSING",
+    "candidate-count": "CANDIDATE_COUNT_MISMATCH",
+    "image-returned": "IMAGE_PROVIDER_EMPTY_RESULT",
+    "image-url": "IMAGE_URL_MISSING",
+    "instrument-scale-positioning": "PRODUCT_SCALE_ERROR",
+    "instrument-violin-structure": "PRODUCT_STRUCTURE_ERROR",
+    "prompt-present": "PROMPT_MISSING",
+    "prompt-validation": "PROMPT_FACT_ERROR",
+    "reference-images": "REFERENCE_SELECTION_ERROR",
+    "single-output-constraint": "PROMPT_CONSTRAINT_MISSING",
+  };
+
+  return map[check.id] || check.id.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function isNeedsInputFailure(check: ReviewCheck) {
+  return check.id === "brand-logo-reference" && check.status === "fail";
+}
+
+function isRetryableCriticalFailure(check: ReviewCheck) {
+  if (isNeedsInputFailure(check)) {
+    return false;
+  }
+
+  return check.status === "fail" && check.severity === "critical";
+}
+
+function resolveMaxAttempts(input: {
+  checks: ReviewCheck[];
+  maxAttempts?: number;
+  score: number;
+}) {
+  if (typeof input.maxAttempts === "number" && Number.isFinite(input.maxAttempts)) {
+    return Math.max(1, Math.floor(input.maxAttempts));
+  }
+
+  if (input.checks.some(isNeedsInputFailure)) {
+    return 1;
+  }
+
+  if (input.checks.some(isRetryableCriticalFailure)) {
+    return 3;
+  }
+
+  if (input.score < 75) {
+    return 2;
+  }
+
+  return 1;
+}
+
+function getDecisionReason(check: ReviewCheck) {
+  return `${check.label}: ${check.message}`;
+}
+
+function decideQuality(input: {
+  attempt?: number;
+  checks: ReviewCheck[];
+  maxAttempts?: number;
+  score: number;
+  status: GeneratedImageQualityReview["status"];
+}): QualityDecision {
+  const attempt = readAttempt(input.attempt);
+  const maxAttempts = resolveMaxAttempts({
+    checks: input.checks,
+    maxAttempts: input.maxAttempts,
+    score: input.score,
+  });
+  const failedOrWarningChecks = input.checks.filter((check) => check.status !== "pass");
+  const failureTypes = uniqueStrings(failedOrWarningChecks.map(failureTypeForCheck));
+  const needsInputChecks = input.checks.filter(isNeedsInputFailure);
+
+  if (needsInputChecks.length > 0) {
+    return {
+      attempt,
+      decision: "needs_input",
+      decisionReasons: needsInputChecks.map(getDecisionReason),
+      failureTypes,
+      maxAttempts,
+      retryRecommended: false,
+    };
+  }
+
+  const retryableCriticalChecks = input.checks.filter(isRetryableCriticalFailure);
+  const shouldRetry = retryableCriticalChecks.length > 0 || input.score < 75;
+
+  if (shouldRetry) {
+    const blockingChecks = retryableCriticalChecks.length > 0 ? retryableCriticalChecks : failedOrWarningChecks;
+
+    if (attempt >= maxAttempts) {
+      return {
+        attempt,
+        decision: "fail_stop",
+        decisionReasons: blockingChecks.map(getDecisionReason),
+        failureTypes,
+        maxAttempts,
+        retryRecommended: false,
+      };
+    }
+
+    return {
+      attempt,
+      decision: "retry",
+      decisionReasons: blockingChecks.map(getDecisionReason),
+      failureTypes,
+      maxAttempts,
+      retryRecommended: true,
+    };
+  }
+
+  if (input.status === "needs_review" || input.score < 85) {
+    return {
+      attempt,
+      decision: "usable_with_caveats",
+      decisionReasons: failedOrWarningChecks.map(getDecisionReason),
+      failureTypes,
+      maxAttempts,
+      retryRecommended: false,
+    };
+  }
+
+  return {
+    attempt,
+    decision: "pass",
+    decisionReasons: [],
+    failureTypes,
+    maxAttempts,
+    retryRecommended: false,
+  };
 }
 
 function hasSingleImageConstraint(prompt: string) {
@@ -508,13 +658,22 @@ export function reviewGeneratedImages(input: ReviewInput): GeneratedImageQuality
     createBrandLogoReferenceCheck(input),
     ...createInstrumentChecks(input),
   ];
+  const score = scoreChecks(checks);
   const status = getOverallStatus(checks);
+  const decision = decideQuality({
+    attempt: input.attempt,
+    checks,
+    maxAttempts: input.maxAttempts,
+    score,
+    status,
+  });
 
   return {
+    ...decision,
     checks,
     generatedTime: new Date().toISOString(),
     reviewer: "local-heuristic-v1",
-    score: scoreChecks(checks),
+    score,
     status,
     summary: summarizeStatus(status),
   };

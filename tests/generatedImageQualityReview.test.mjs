@@ -69,6 +69,8 @@ test("local generated image review passes a complete generation record", () => {
   });
 
   assert.equal(review.status, "usable");
+  assert.equal(review.decision, "pass");
+  assert.equal(review.retryRecommended, false);
   assert.equal(review.reviewer, "local-heuristic-v1");
   assert.ok(review.score >= 90);
 });
@@ -85,6 +87,8 @@ test("local generated image review asks for review when candidate count differs"
   });
 
   assert.equal(review.status, "needs_review");
+  assert.equal(review.decision, "usable_with_caveats");
+  assert.equal(review.retryRecommended, false);
   assert.match(
     review.checks.find((check) => check.id === "candidate-count")?.message || "",
     /请求 3 张，实际返回 1 张/,
@@ -106,6 +110,8 @@ test("local generated image review blocks low-score invalid prompt output", () =
   });
 
   assert.equal(review.status, "not_recommended");
+  assert.equal(review.decision, "retry");
+  assert.equal(review.retryRecommended, true);
   assert.ok(review.score < 80);
 });
 
@@ -128,6 +134,9 @@ test("local generated image review blocks visible logo prompt without brand_logo
   });
 
   assert.equal(review.status, "not_recommended");
+  assert.equal(review.decision, "needs_input");
+  assert.equal(review.retryRecommended, false);
+  assert.ok(review.failureTypes.includes("LOGO_REFERENCE_MISSING"));
   assert.equal(
     review.checks.find((check) => check.id === "brand-logo-reference")?.status,
     "fail",
@@ -156,6 +165,7 @@ test("local generated image review accepts visible logo prompt with brand_logo r
   });
 
   assert.equal(review.status, "usable");
+  assert.equal(review.decision, "pass");
   assert.equal(
     review.checks.find((check) => check.id === "brand-logo-reference")?.status,
     "pass",
@@ -205,10 +215,34 @@ test("instrument review flags violin prompts that omit key structure terms", () 
   });
 
   assert.equal(review.status, "not_recommended");
+  assert.equal(review.decision, "retry");
+  assert.equal(review.maxAttempts, 3);
   assert.equal(
     review.checks.find((check) => check.id === "instrument-violin-structure")?.status,
     "fail",
   );
+});
+
+test("local generated image review stops after retryable critical max attempts", () => {
+  const { reviewGeneratedImages } = loadReview();
+  const review = reviewGeneratedImages({
+    actualImageModel: "gpt-image-2",
+    attempt: 3,
+    imageType: "主图",
+    images: [createImage()],
+    productFacts: createViolinFacts(),
+    promptValidation: createValidation(),
+    referenceImageCount: 2,
+    requestedImageCount: 1,
+    requestedImageModel: "gpt-image-2",
+    theme: "使用场景图",
+  });
+
+  assert.equal(review.status, "not_recommended");
+  assert.equal(review.decision, "fail_stop");
+  assert.equal(review.retryRecommended, false);
+  assert.equal(review.attempt, 3);
+  assert.equal(review.maxAttempts, 3);
 });
 
 test("instrument review blocks miniature craft violins without scale-safe wording", () => {

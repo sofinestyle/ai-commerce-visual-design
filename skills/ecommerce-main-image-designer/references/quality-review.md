@@ -74,11 +74,20 @@ Decision values:
 - `usable_with_caveats`: deliver with caveats.
 - `retry`: retry within the retry budget.
 - `fail_stop`: stop automatic generation and report the failure.
+- `needs_input`: stop retry and ask for missing verified input, such as a true `brand_logo`, required packaging reference, product reference, or verified commercial fact.
+
+Decision rules:
+
+- Critical failures that can be corrected by prompt/reference tightening may retry within the budget.
+- Missing verified assets or commercial facts are not retryable image failures; return `needs_input` or remove the unsupported visual/claim.
+- Platform hard-rule conflicts are not retryable image failures; fix the request, platform rule, or prompt policy before generating again.
+- If the same retryable failure remains at `maxAttempts`, return `fail_stop` and explain the unresolved failure type.
 
 ## Retry Budget
 
 - Normal QA failure: retry at most 1 time.
 - Critical failure: retry at most 2 times.
+- Missing true logo, packaging reference, verified product body reference, or verified promotion facts: do not retry image generation; ask for input or continue with the unsupported element omitted when policy allows.
 - Local edit drift or missed localized fix: retry once with a narrower edit request, then switch to redesign/regeneration if the defect is structural.
 - After the maximum attempts, stop automatic generation, return the current best usable result when one exists, and explain the remaining failure reason.
 

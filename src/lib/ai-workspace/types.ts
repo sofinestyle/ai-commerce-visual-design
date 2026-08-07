@@ -271,6 +271,7 @@ export type GeneratedImage = {
 };
 
 export type GeneratedImageQualityReview = {
+  attempt: number;
   checks: Array<{
     id: string;
     label: string;
@@ -278,8 +279,13 @@ export type GeneratedImageQualityReview = {
     severity: "info" | "warning" | "critical";
     status: "pass" | "warning" | "fail";
   }>;
+  decision: "pass" | "usable_with_caveats" | "retry" | "fail_stop" | "needs_input";
+  decisionReasons: string[];
+  failureTypes: string[];
   generatedTime: string;
+  maxAttempts: number;
   reviewer: "local-heuristic-v1";
+  retryRecommended: boolean;
   score: number;
   status: "usable" | "needs_review" | "not_recommended";
   summary: string;
