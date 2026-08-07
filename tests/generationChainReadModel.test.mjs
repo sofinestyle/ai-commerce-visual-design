@@ -29,11 +29,13 @@ test("readEditMetadata extracts continue-design parent image and intent", () => 
     {
       editIntent: "换成白底并保留文字",
       parentImageId: "image-v1",
+      revisionMode: null,
     },
   );
   assert.deepEqual(readEditMetadata({}), {
     editIntent: "",
     parentImageId: null,
+    revisionMode: null,
   });
 });
 
@@ -60,6 +62,9 @@ test("buildGenerationChainImageNode maps Media fields into a version-chain node"
     imageFileStatus: "unchecked",
     mediaId: "media-1",
     metadataSummary: {
+      attempt: null,
+      decision: null,
+      failureTypes: [],
       actualImageModel: null,
       imageType: null,
       platform: null,
@@ -81,6 +86,7 @@ test("buildGenerationChainImageNode maps Media fields into a version-chain node"
     updatedAt: "2026-07-04T00:01:00.000Z",
     version: "v1",
     versionNumber: 1,
+    revisionMode: null,
   });
 });
 
@@ -132,6 +138,9 @@ test("readGenerationMetadataSummary extracts platform chain observability fields
       sku: "W102-BR",
       theme: "starter set",
       visualRuleId: "temu-main-product",
+      attempt: null,
+      decision: null,
+      failureTypes: [],
     },
   );
 });
