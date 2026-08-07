@@ -1,0 +1,32 @@
+[
+  {
+    "sku": "L301-GN",
+    "name": "Green beginner violin",
+    "brand": "YorRay",
+    "category": "violin",
+    "color": "green",
+    "size": "4/4",
+    "accessories": "case, strings, rosin, shoulder rest",
+    "packaging": "color box"
+  },
+  {
+    "sku": "W102-BR",
+    "name": "Brown beginner violin set",
+    "brand": "YorRay",
+    "category": "violin",
+    "color": "brown",
+    "size": "4/4",
+    "accessories": "triangle case, strings, rosin, shoulder rest",
+    "packaging": "kraft carton"
+  },
+  {
+    "sku": "SKU-WITH-NO-PHOTO",
+    "name": "Fixture product without usable media",
+    "brand": "YorRay",
+    "category": "violin",
+    "color": "brown",
+    "size": "4/4",
+    "accessories": "",
+    "packaging": ""
+  }
+]

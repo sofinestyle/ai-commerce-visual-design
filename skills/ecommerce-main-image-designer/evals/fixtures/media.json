@@ -1,0 +1,34 @@
+[
+  {
+    "id": "media-l301-front",
+    "sku": "L301-GN",
+    "type": "front",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/l301-front.jpg"
+  },
+  {
+    "id": "media-l301-detail",
+    "sku": "L301-GN",
+    "type": "detail",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/l301-detail.jpg"
+  },
+  {
+    "id": "media-w102-front",
+    "sku": "W102-BR",
+    "type": "front",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/w102-front.jpg"
+  },
+  {
+    "id": "media-w102-logo",
+    "sku": "W102-BR",
+    "type": "brand_logo",
+    "source": "brand_asset",
+    "status": "final",
+    "url": "/fixtures/yor-ray-logo.png"
+  }
+]

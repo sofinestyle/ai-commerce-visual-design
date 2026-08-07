@@ -1,0 +1,23 @@
+[
+  {
+    "platform": "Amazon",
+    "imageType": "主图",
+    "theme": "首图",
+    "copyMode": "none",
+    "logoMode": "forbidden"
+  },
+  {
+    "platform": "TEMU",
+    "imageType": "主图",
+    "theme": "产品图",
+    "copyMode": "auto",
+    "logoMode": "auto"
+  },
+  {
+    "platform": "天猫",
+    "imageType": "主图",
+    "theme": "使用场景图",
+    "copyMode": "auto",
+    "logoMode": "auto"
+  }
+]
