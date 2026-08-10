@@ -13,11 +13,21 @@ The task workbook says what to do for this run. This skill says how to do it saf
 
 ## Workbook
 
-Use the workbook at:
+Use the workbook named:
 
 ```text
-task/AI电商视觉生产管理系统_V3.2_最终精简版.xlsx
+AI电商视觉生产管理系统_V3.2_最终精简版.xlsx
 ```
+
+Locate it dynamically in this priority order:
+
+1. The current ChatGPT Work / Agent session already provides, mounts, or exposes an accessible workbook with that exact file name.
+2. The current workspace or project directory contains a workbook with that exact file name.
+3. The repository `task/` directory contains a workbook with that exact file name, if present.
+
+The workbook is business task data. GitHub stores the Skill rules; the Excel workbook does not need to be committed to GitHub.
+
+If exactly one clear candidate is found, use it directly. If multiple same-name candidates are found or the current official workbook cannot be determined unambiguously, return `BLOCKED`, list the candidate paths and conflict reason, and stop. If no candidate is found, return `BLOCKED`, report that `AI电商视觉生产管理系统_V3.2_最终精简版.xlsx` was not found, and stop.
 
 Expected sheets:
 

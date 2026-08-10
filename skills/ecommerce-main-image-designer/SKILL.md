@@ -28,7 +28,7 @@ Also support Excel task workflow commands:
 查看任务 VIS-0128
 ```
 
-For these commands, read the workbook at `task/AI电商视觉生产管理系统_V3.2_最终精简版.xlsx` and follow `references/excel-task-workflow.md`. The workbook supplies the task variables for this run; product facts and generation capability still come only from the ecommerce visual design platform.
+For these commands, dynamically locate the workbook named `AI电商视觉生产管理系统_V3.2_最终精简版.xlsx` according to `references/excel-task-workflow.md`, then follow that workflow. The workbook supplies the task variables for this run; product facts and generation capability still come only from the ecommerce visual design platform. The workbook is business task data and does not need to be committed to GitHub.
 
 ## Core Workflow
 
