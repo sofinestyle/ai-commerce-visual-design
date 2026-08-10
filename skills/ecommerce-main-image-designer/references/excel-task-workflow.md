@@ -71,6 +71,8 @@ User-filled fields in `视觉任务清单`:
 - `参考图片要求`
 - `Logo要求`
 - `场景及特殊要求`
+- `提示词模型`
+- `生图模型`
 
 User review fields:
 
@@ -89,6 +91,8 @@ AI-maintained fields:
 - `错误信息`
 
 Treat missing required user fields as `BLOCKED`: product number, platform, set count, image structure, reference-image requirements, logo requirements, and scene/special requirements. Do not infer missing product facts from the workbook.
+
+`提示词模型` and `生图模型` are optional user controls. If blank, use the platform defaults from `src/lib/modelDefaults.ts`: `gpt-5.6-terra` for prompt generation and `gpt-image-2-03` for image generation. If either field is non-empty, it must match an available model exposed by the platform or configured fallback list; otherwise return `BLOCKED`, write `模型名称无效` plus the offending value to `错误信息`, and stop before generation.
 
 ## Product Facts Rule
 
@@ -171,13 +175,19 @@ When receiving `修改方案 VIS-XXXX`:
 
 1. Locate the task row.
 2. Find the latest scheme version for the task in `AI设计方案库`.
-3. Read user-entered `修改意见` from rows for the latest version.
-4. If no modification comments exist, return `BLOCKED`, write `修改方案但没有修改意见` to `错误信息`, and stop.
-5. Create the next version (`V1` -> `V2`, `V2` -> `V3`, etc.).
-6. Copy the full latest-version scheme, changing only the rows/fields requested by user comments.
-7. Append the new complete version to `AI设计方案库`.
+3. Read `审核结果` and user-entered `修改意见` from rows for the latest version.
+4. Identify revision target rows:
+   - rows whose `审核结果` equals `修改`
+   - rows whose `修改意见` is non-empty while `审核结果` is blank
+5. If no revision target rows exist, return `BLOCKED`, write `修改方案但没有修改意见` to `错误信息`, and stop.
+6. If any row has `审核结果` = `修改` but blank `修改意见`, return `BLOCKED`, write `修改方案但修改行没有修改意见` to `错误信息`, and stop.
+7. Create the next version (`V1` -> `V2`, `V2` -> `V3`, etc.).
+8. Append only the revised rows to `AI设计方案库`, changing the fields requested by user comments.
+9. Do not copy rows marked `通过` into the new version.
 
-Do not overwrite or delete older versions. If the currently approved and locked version needs changes, the changes must become a new version that requires review and locking again.
+Do not overwrite or delete older versions. A revised version may be a partial delta containing only changed image rows. If the currently approved and locked version needs changes, the changes must become a new version that requires review and locking again.
+
+When a version is partial, resolve the complete scheme for display or execution by overlaying versions in order: start from the latest complete prior version, then replace rows by the key `任务编号 + 套图编号 + 图片编号` using rows from later partial versions up to the approved version. Rows marked `通过` remain inherited from the prior version and must not be duplicated merely to make a version look complete.
 
 After writing the revision:
 
@@ -202,11 +212,13 @@ If either condition fails, return `BLOCKED`, write the exact reason to `错误�
 If approved and locked:
 
 1. Read `已批准版本`.
-2. Load all rows from `AI设计方案库` matching the task id and approved version.
-3. Treat those rows as a frozen scheme.
-4. Do not redesign, optimize, or change image count, image structure, subject, references, scene, logo, copy, or visual focus.
-5. Build `confirmedPlanItems` from the frozen rows.
-6. Execute generation through the official platform chain, following `workflow.md`, `product-facts.md`, `reference-selection.md`, `copy.md`, `copy-candidate-protocol.md`, `quality-review.md`, and `failure-recovery.md`.
+2. Resolve `提示词模型` and `生图模型` from the task row, falling back to `gpt-5.6-terra` and `gpt-image-2-03` when blank.
+3. Validate the resolved model names against the platform or configured fallback lists.
+4. Load the approved scheme from `AI设计方案库`. If the approved version is partial, build the complete frozen scheme by overlaying versions in order with the key `任务编号 + 套图编号 + 图片编号`.
+5. Treat the resolved rows as a frozen scheme.
+6. Do not redesign, optimize, or change image count, image structure, subject, references, scene, logo, copy, or visual focus.
+7. Build `confirmedPlanItems` from the frozen rows.
+8. Execute generation through the official platform chain using the resolved prompt model and image model, following `workflow.md`, `product-facts.md`, `reference-selection.md`, `copy.md`, `copy-candidate-protocol.md`, `quality-review.md`, and `failure-recovery.md`.
 
 At start:
 
@@ -233,6 +245,7 @@ After generation:
 - record `生成结果路径/链接`
 - record `最终状态`
 - record `备注` with failed image ids and exact reasons when any fail
+- record the resolved prompt model and image model in `备注` when the workbook has no dedicated execution-record columns for them
 
 If all images succeed, set `最终状态` = `成功` and task `任务状态` = `生成完成`.
 
@@ -248,6 +261,8 @@ Return a concise summary:
 - platform
 - set count
 - per-set and total image count
+- prompt model
+- image model
 - current scheme version
 - approved version
 - lock status

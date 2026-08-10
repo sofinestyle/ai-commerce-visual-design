@@ -236,10 +236,29 @@ function decideQuality(input: {
 }
 
 function hasSingleImageConstraint(prompt: string) {
-  return (
-    /one standalone/i.test(prompt) &&
-    /(no collage|do not create a collage|no split screen|single image)/i.test(prompt)
-  );
+  const hasStandaloneImageLanguage =
+    /one standalone/i.test(prompt) ||
+    /single standalone/i.test(prompt) ||
+    /standalone complete/i.test(prompt) ||
+    /single[-\s]?canvas/i.test(prompt) ||
+    /one standalone composition/i.test(prompt) ||
+    /一张独立完整/.test(prompt) ||
+    /单张.{0,12}画面/.test(prompt);
+  const hasNoMultiCanvasLanguage =
+    /no collage/i.test(prompt) ||
+    /do not create (?:a )?collages?/i.test(prompt) ||
+    /collages?/i.test(prompt) ||
+    /split screens?/i.test(prompt) ||
+    /multi[-\s]?panel/i.test(prompt) ||
+    /multiple canvases/i.test(prompt) ||
+    /multi[-\s]?view canvases?/i.test(prompt) ||
+    /contact sheets?/i.test(prompt) ||
+    /comparison layouts?/i.test(prompt) ||
+    /(?:不得|禁止).{0,12}拼图/.test(prompt) ||
+    /不得.{0,12}分屏/.test(prompt) ||
+    /多视角画布/.test(prompt);
+
+  return hasStandaloneImageLanguage && hasNoMultiCanvasLanguage;
 }
 
 function readPrompt(images: GeneratedImage[]) {

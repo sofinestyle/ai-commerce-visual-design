@@ -75,6 +75,82 @@ test("local generated image review passes a complete generation record", () => {
   assert.ok(review.score >= 90);
 });
 
+test("single image constraint accepts current prompt builder wording", () => {
+  const { reviewGeneratedImages } = loadReview();
+  const prompt = [
+    "Create one standalone complete commercial product image, 1:1, 1024x1024.",
+    "Each API candidate must be an independent single-canvas image; never depict the output count, numbered variants, panels, collages, contact sheets, comparison views, or multiple canvases.",
+    "Do not create collages, split screens, comparison layouts, contact sheets, storyboards, or multi-view canvases.",
+  ].join(" ");
+  const review = reviewGeneratedImages({
+    actualImageModel: "gpt-image-2",
+    images: [{ ...createImage(), prompt }],
+    promptValidation: createValidation(),
+    referenceImageCount: 2,
+    requestedImageCount: 1,
+    requestedImageModel: "gpt-image-2",
+  });
+
+  assert.equal(
+    review.checks.find((check) => check.id === "single-output-constraint")?.status,
+    "pass",
+  );
+  assert.equal(review.status, "usable");
+  assert.equal(review.score, 100);
+});
+
+test("single image constraint accepts Chinese standalone and no collage wording", () => {
+  const { reviewGeneratedImages } = loadReview();
+  const review = reviewGeneratedImages({
+    actualImageModel: "gpt-image-2",
+    images: [
+      {
+        ...createImage(),
+        prompt: "生成一张独立完整的主图。单张画面内不得出现拼图、分屏或多视角画布。",
+      },
+    ],
+    promptValidation: createValidation(),
+    referenceImageCount: 2,
+    requestedImageCount: 1,
+    requestedImageModel: "gpt-image-2",
+  });
+
+  assert.equal(
+    review.checks.find((check) => check.id === "single-output-constraint")?.status,
+    "pass",
+  );
+  assert.equal(review.status, "usable");
+});
+
+test("single image constraint still warns when either semantic half is missing", () => {
+  const { reviewGeneratedImages } = loadReview();
+  const reviewStandaloneOnly = reviewGeneratedImages({
+    actualImageModel: "gpt-image-2",
+    images: [{ ...createImage(), prompt: "Create one standalone complete commercial product image." }],
+    promptValidation: createValidation(),
+    referenceImageCount: 2,
+    requestedImageCount: 1,
+    requestedImageModel: "gpt-image-2",
+  });
+  const reviewNoCollageOnly = reviewGeneratedImages({
+    actualImageModel: "gpt-image-2",
+    images: [{ ...createImage(), prompt: "Do not create collages, split screens, or multi-panel images." }],
+    promptValidation: createValidation(),
+    referenceImageCount: 2,
+    requestedImageCount: 1,
+    requestedImageModel: "gpt-image-2",
+  });
+
+  assert.equal(
+    reviewStandaloneOnly.checks.find((check) => check.id === "single-output-constraint")?.status,
+    "warning",
+  );
+  assert.equal(
+    reviewNoCollageOnly.checks.find((check) => check.id === "single-output-constraint")?.status,
+    "warning",
+  );
+});
+
 test("local generated image review asks for review when candidate count differs", () => {
   const { reviewGeneratedImages } = loadReview();
   const review = reviewGeneratedImages({
