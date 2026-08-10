@@ -388,5 +388,21 @@
       "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
       "behavior": "brand identity mention with true logo asset should allow brand logo selection"
     }
+  },
+  {
+    "id": "brand-logo-resolved-via-product-brand-asset",
+    "prompt": "制作1张TEMU主图，产品编号 FL201-BR，增强品牌识别氛围。",
+    "expected": {
+      "request": {
+        "platform": "TEMU",
+        "sku": "FL201-BR",
+        "imageType": "主图",
+        "copyMode": "auto",
+        "brandLogoMode": "required"
+      },
+      "selectedReferenceRoles": ["front", "brand_logo"],
+      "requiredReferences": ["workflow.md", "product-facts.md", "reference-selection.md", "quality-review.md"],
+      "behavior": "SKU requests must resolve true brand_logo through product brand assets, not only exact-SKU media"
+    }
   }
 ]

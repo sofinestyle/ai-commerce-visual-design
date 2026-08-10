@@ -121,10 +121,25 @@ function productBodyReferenceExists(mediaItems, sku) {
   );
 }
 
-function hasTrueLogoReference(mediaItems, sku) {
+function getProductBrand(products, sku) {
+  return products.find((item) => item.sku === sku)?.brand || "";
+}
+
+function mediaMatchesSkuOrProductBrand(item, sku, products) {
+  const brand = getProductBrand(products, sku);
+
+  return (
+    item.sku === sku ||
+    (Boolean(brand) &&
+      item.source === "brand_asset" &&
+      (item.brand === brand || item.sku === brand))
+  );
+}
+
+function hasTrueLogoReference(mediaItems, sku, products) {
   return mediaItems.some(
     (item) =>
-      item.sku === sku &&
+      mediaMatchesSkuOrProductBrand(item, sku, products) &&
       item.type === "brand_logo" &&
       item.source !== "AI" &&
       Boolean(item.url),
@@ -137,19 +152,19 @@ function hasPseudoLogoReference(mediaItems, sku) {
   );
 }
 
-function hasAccessoryOrPackagingReference(mediaItems, sku) {
+function hasAccessoryOrPackagingReference(mediaItems, sku, products) {
   return mediaItems.some(
     (item) =>
-      item.sku === sku &&
+      mediaMatchesSkuOrProductBrand(item, sku, products) &&
       item.source !== "AI" &&
       ["accessories", "packaging"].includes(item.type) &&
       Boolean(item.url),
   );
 }
 
-function selectedReferenceRoles(mediaItems, sku, request) {
+function selectedReferenceRoles(mediaItems, sku, request, products) {
   const roles = mediaItems
-    .filter((item) => item.sku === sku && item.source !== "AI" && Boolean(item.url))
+    .filter((item) => mediaMatchesSkuOrProductBrand(item, sku, products) && item.source !== "AI" && Boolean(item.url))
     .map((item) => item.type);
 
   if (request.brandLogoMode === "forbidden") {
@@ -171,9 +186,9 @@ function requestsRequiredPackaging(prompt) {
   );
 }
 
-function buildPromptConstraints(prompt, request, mediaItems) {
+function buildPromptConstraints(prompt, request, mediaItems, products) {
   const constraints = [];
-  const logoAvailable = request.sku ? hasTrueLogoReference(mediaItems, request.sku) : false;
+  const logoAvailable = request.sku ? hasTrueLogoReference(mediaItems, request.sku, products) : false;
 
   if (request.brandLogoMode === "forbidden" || !logoAvailable) {
     constraints.push("no_invented_logo");
@@ -183,7 +198,7 @@ function buildPromptConstraints(prompt, request, mediaItems) {
     constraints.push("no_visible_copy");
   }
 
-  if (requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(mediaItems, request.sku)) {
+  if (requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(mediaItems, request.sku, products)) {
     constraints.push("branded_accessory_unbranded_or_omitted");
   }
 
@@ -267,23 +282,23 @@ function buildActual(caseItem, fixtures) {
     missingFields.push("verifiedProductReference");
   }
 
-  if (product && request.brandLogoMode === "required" && !hasTrueLogoReference(fixtures.media, request.sku)) {
+  if (product && request.brandLogoMode === "required" && !hasTrueLogoReference(fixtures.media, request.sku, fixtures.products)) {
     missingFields.push("brandLogoReference");
   }
 
   if (product && request.brandLogoMode === "auto" && /品牌识别|品牌视觉|brand identity/i.test(prompt)) {
-    request.brandLogoMode = hasTrueLogoReference(fixtures.media, request.sku) ? "required" : "forbidden";
+    request.brandLogoMode = hasTrueLogoReference(fixtures.media, request.sku, fixtures.products) ? "required" : "forbidden";
   }
 
-  if (product && requestsRequiredPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku)) {
+  if (product && requestsRequiredPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku, fixtures.products)) {
     missingFields.push("packagingReference");
   }
 
-  if (product && requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku)) {
+  if (product && requestsBrandedAccessoryOrPackaging(prompt) && !hasAccessoryOrPackagingReference(fixtures.media, request.sku, fixtures.products)) {
     request.brandedAccessoryMode = "generic_unbranded_or_omit";
   }
 
-  if (product && hasPseudoLogoReference(fixtures.media, request.sku) && !hasTrueLogoReference(fixtures.media, request.sku)) {
+  if (product && hasPseudoLogoReference(fixtures.media, request.sku) && !hasTrueLogoReference(fixtures.media, request.sku, fixtures.products)) {
     request.logoReferenceSource = "pseudo_logo_excluded";
   }
 
@@ -294,10 +309,10 @@ function buildActual(caseItem, fixtures) {
     mode,
     missingFields: unique(missingFields),
     providerBypass: false,
-    promptConstraints: buildPromptConstraints(prompt, request, fixtures.media),
+    promptConstraints: buildPromptConstraints(prompt, request, fixtures.media, fixtures.products),
     request,
     requiredReferences: caseItem.expected.requiredReferences ?? [],
-    selectedReferenceRoles: request.sku ? selectedReferenceRoles(fixtures.media, request.sku, request) : [],
+    selectedReferenceRoles: request.sku ? selectedReferenceRoles(fixtures.media, request.sku, request, fixtures.products) : [],
     status,
   };
 }

@@ -62,5 +62,22 @@
     "source": "user_upload",
     "status": "final",
     "url": "/fixtures/pkg-packaging.jpg"
+  },
+  {
+    "id": "media-fl201-front",
+    "sku": "FL201-BR",
+    "type": "front",
+    "source": "user_upload",
+    "status": "final",
+    "url": "/fixtures/fl201-front.jpg"
+  },
+  {
+    "id": "media-finlegend-logo",
+    "sku": "FineLegend",
+    "brand": "FineLegend",
+    "type": "brand_logo",
+    "source": "brand_asset",
+    "status": "final",
+    "url": "/fixtures/finlegend-logo.png"
   }
 ]

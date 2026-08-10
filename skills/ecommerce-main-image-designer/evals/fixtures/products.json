@@ -48,5 +48,15 @@
     "size": "4/4",
     "accessories": "case, strings, rosin",
     "packaging": "printed retail box"
+  },
+  {
+    "sku": "FL201-BR",
+    "name": "Glossy red beginner violin",
+    "brand": "FineLegend",
+    "category": "violin",
+    "color": "glossy red",
+    "size": "4/4",
+    "accessories": "triangle case, strings, rosin, black plastic shoulder rest",
+    "packaging": ""
   }
 ]

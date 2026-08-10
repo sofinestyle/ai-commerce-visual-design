@@ -34,7 +34,7 @@ Read product facts before copy or image prompts:
 
 If a fact is absent, leave it absent. Do not invent.
 
-Visible logos, wordmarks, trademarks, brand labels, or branded packaging may appear only when a verified `brand_logo` image asset is selected as a reference. If no usable logo file is found, default to no visible logo and no brand text; never synthesize a similar logo from the brand name.
+Visible logos, wordmarks, trademarks, brand labels, or branded packaging may appear only when a verified `brand_logo` image asset is selected as a reference. For SKU-based work, logo lookup must follow the product relationship: exact SKU media first, then product `brandId`, brand name, and brand-level `brand_asset` media. If no usable logo file is found after this brand-level lookup, default to no visible logo and no brand text; never synthesize a similar logo from the brand name.
 
 ## Creative Defaults
 

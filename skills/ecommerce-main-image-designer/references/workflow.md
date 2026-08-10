@@ -47,7 +47,7 @@ Use the ecommerce visual design platform's official generation chain for normal 
 5. Use platform image-generation API/workflow for final images.
 6. Verify generated media and generation chain/history records exist when the platform supports them.
 
-Logo and branded packaging rule: visible logo must come from a verified `brand_logo` asset. If the platform cannot find a logo file, default to no visible logo/brand text; never let the model generate a logo from the brand name. Branded case/bag/packaging scenes must also include the relevant verified accessory or packaging reference, otherwise keep those details generic or omit them.
+Logo and branded packaging rule: visible logo must come from a verified `brand_logo` asset. When a SKU is provided, resolve logo assets by product relationship first: exact SKU -> product record -> `brandId` -> brand name -> matching `brand_asset` / `brand_logo` media. Do not stop after only searching the SKU folder. If no verified logo file exists after checking the product's brand assets, default to no visible logo/brand text; never let the model generate a logo from the brand name. Branded case/bag/packaging scenes must also include the relevant verified accessory or packaging reference from the exact SKU or the product's brand assets, otherwise keep those details generic or omit them.
 
 The unified endpoint request should include:
 

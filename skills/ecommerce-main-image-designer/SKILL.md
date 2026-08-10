@@ -19,17 +19,29 @@ The user should be able to write a compact task such as:
 
 Do not ask the user to provide a professional prompt unless required commercial/product facts cannot be found locally.
 
+Also support Excel task workflow commands:
+
+```text
+生成方案 VIS-0128
+修改方案 VIS-0128
+执行生图 VIS-0128
+查看任务 VIS-0128
+```
+
+For these commands, read the workbook at `task/AI电商视觉生产管理系统_V3.2_最终精简版.xlsx` and follow `references/excel-task-workflow.md`. The workbook supplies the task variables for this run; product facts and generation capability still come only from the ecommerce visual design platform.
+
 ## Core Workflow
 
-1. Parse the user's compact request into a structured ecommerce brief.
-2. Run the Required Facts Gate in `product-facts.md`; stop with `needs_input` before planning or generation when required facts are missing.
-3. Read platform/product context and select exact-SKU references using `reference-selection.md`.
-4. Choose endpoint mode:
+1. If the user command is one of the Excel workflow commands, follow `excel-task-workflow.md` first and use this skill's normal product, reference, prompt, generation, and QA rules as the execution engine.
+2. Parse the user's compact request into a structured ecommerce brief.
+3. Run the Required Facts Gate in `product-facts.md`; stop with `needs_input` before planning or generation when required facts are missing.
+4. Read platform/product context and select exact-SKU references using `reference-selection.md`.
+5. Choose endpoint mode:
    - planning/analysis/proposal language -> `plan_only`
    - direct create/generate language -> `generate`
    - confirmation after a plan -> generate from confirmed plan items
-5. Resolve visible copy only when allowed and useful; use `copy.md` and `copy-candidate-protocol.md`.
-6. Execute through the platform chain, inspect QA, and follow `quality-review.md` and `failure-recovery.md` for retry/fallback decisions.
+6. Resolve visible copy only when allowed and useful; use `copy.md` and `copy-candidate-protocol.md`.
+7. Execute through the platform chain, inspect QA, and follow `quality-review.md` and `failure-recovery.md` for retry/fallback decisions.
 
 Never ask the user to write a professional image prompt. Codex should translate short business intent into the platform's structured request.
 
@@ -52,6 +64,7 @@ Never ask the user to write a professional image prompt. Codex should translate 
 
 Read only the relevant reference files:
 
+- For Excel task commands (`生成方案 VIS-XXXX`, `修改方案 VIS-XXXX`, `执行生图 VIS-XXXX`, `查看任务 VIS-XXXX`), read [excel-task-workflow.md](references/excel-task-workflow.md) before all other workflow references.
 - For every task, read [workflow.md](references/workflow.md).
 - For every product-specific task, read [product-facts.md](references/product-facts.md).
 - For visible copy tasks or text-model failures, read [copy.md](references/copy.md).
