@@ -59,6 +59,17 @@ For every writable command:
 
 Never ask the user to manually maintain AI-owned fields.
 
+## Row Placement
+
+When appending rows to `AI设计方案库` or `执行记录`, do not use the worksheet's `max_row`, Excel "used range", or the last styled row to decide the insertion point. Those values may include empty-but-formatted rows and can push new records hundreds of rows below the visible table.
+
+Instead, scan from the first data row after the header and find the first contiguous block of truly empty business records whose length is at least the number of rows to write. A row is considered empty for placement only when all key record fields are blank:
+
+- For `AI设计方案库`: `任务编号`, `方案版本`, `套图编号`, `图片编号`, and `图片类型`.
+- For `执行记录`: `执行编号`, `任务编号`, and `方案版本`.
+
+Write into that first empty block, preserve the row formatting, then re-open the workbook and verify the exact row numbers, task id, version, and row count. If no sufficiently large empty block exists before later historical records, append immediately after the last non-empty business record, not after the last formatted row.
+
 ## Task Row Fields
 
 User-filled fields in `视觉任务清单`:
@@ -200,6 +211,18 @@ After writing the revision:
 
 Then stop. Revision must never call an image generation interface.
 
+## Platform Runtime Environment
+
+Before any command checks platform model/API availability or executes the official platform chain, run from the repository root and load the project `.env` file when present. The official local project `.env` is expected at the repository root, for example:
+
+```text
+/Users/aaron/Documents/ai-commerce-visual-design/.env
+```
+
+Do not decide that the platform API is unavailable from a bare shell `process.env` check unless the project `.env` has already been loaded or the command is running inside the already-started Next/platform process that loaded it. The project startup script uses `source .env`; Codex one-off Node or shell commands must do the equivalent before checking `AI_PROVIDER`, `AI_BASE_URL`, `AI_API_KEY`, `OPENAI_API_KEY`, prompt model availability, or image model availability. For shell-based checks, use `set -a; source .env; set +a` from the repository root before running the check.
+
+If `.env` is missing, unreadable, or cannot be loaded, return `BLOCKED`, write `平台环境配置未加载` plus the exact reason to `错误信息`, and stop before creating an execution record or marking the task as failed. Do not generate mock images or record a normal execution failure merely because the one-off command forgot to load `.env`.
+
 ## 执行生图
 
 When receiving `执行生图 VIS-XXXX`, first run the approval gate:
@@ -212,13 +235,14 @@ If either condition fails, return `BLOCKED`, write the exact reason to `错误�
 If approved and locked:
 
 1. Read `已批准版本`.
-2. Resolve `提示词模型` and `生图模型` from the task row, falling back to `gpt-5.6-terra` and `gpt-image-2-03` when blank.
-3. Validate the resolved model names against the platform or configured fallback lists.
-4. Load the approved scheme from `AI设计方案库`. If the approved version is partial, build the complete frozen scheme by overlaying versions in order with the key `任务编号 + 套图编号 + 图片编号`.
-5. Treat the resolved rows as a frozen scheme.
-6. Do not redesign, optimize, or change image count, image structure, subject, references, scene, logo, copy, or visual focus.
-7. Build `confirmedPlanItems` from the frozen rows.
-8. Execute generation through the official platform chain using the resolved prompt model and image model, following `workflow.md`, `product-facts.md`, `reference-selection.md`, `copy.md`, `copy-candidate-protocol.md`, `quality-review.md`, and `failure-recovery.md`.
+2. Load the platform runtime environment according to `Platform Runtime Environment`.
+3. Resolve `提示词模型` and `生图模型` from the task row, falling back to `gpt-5.6-terra` and `gpt-image-2-03` when blank.
+4. Validate the resolved model names against the platform or configured fallback lists using the loaded platform environment.
+5. Load the approved scheme from `AI设计方案库`. If the approved version is partial, build the complete frozen scheme by overlaying versions in order with the key `任务编号 + 套图编号 + 图片编号`.
+6. Treat the resolved rows as a frozen scheme.
+7. Do not redesign, optimize, or change image count, image structure, subject, references, scene, logo, copy, or visual focus.
+8. Build `confirmedPlanItems` from the frozen rows.
+9. Execute generation through the official platform chain using the resolved prompt model and image model, following `workflow.md`, `product-facts.md`, `reference-selection.md`, `copy.md`, `copy-candidate-protocol.md`, `quality-review.md`, and `failure-recovery.md`.
 
 At start:
 
